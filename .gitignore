@@ -1,7 +1,16 @@
+# Ignore configuration files
 .python-version
 .vscode
+configuration.py
+
+# Ignore instance related files and pdfs
+Instances
 *.dat
 *.pdf
 *.zip
 
+# Ignore unused code
 main.cpp
+
+# Ignore cache
+__pycache__

@@ -4,8 +4,7 @@ from bisect import bisect
 from time import time
 from random import sample
 
-path = "/home/jeffrey/Bureau/cours/3a/meta-heuristique/Instances/"
-name = "captANOR1500_18_100.dat"
+from configuration import PATH,NAME
 
 
 class Project:
@@ -22,7 +21,7 @@ class Project:
         self._Rcapt, self._Rcom = self.L_Radius[ind_radius][0], self.L_Radius[ind_radius][1]
         self._k = self.L_k[ind_k]
 
-    def read_instance(self,name):
+    def read_instance(self,name, path=PATH):
         
         f = open(path + name,"r")
         self._data = {}
@@ -93,9 +92,9 @@ class Project:
 
 Project1 = Project()
 Project1.chose(0,0)
-Project1.read_instance(name)
+Project1.read_instance(NAME)
 t = time()
-for i in sample(range(1,1500),1000):
+for i in sample(range(1,150),100):
     Project1.add_capteur(i)
 t1 = time()
 print(t1-t)
