@@ -1,0 +1,7 @@
+.python-version
+.vscode
+*.dat
+*.pdf
+*.zip
+
+main.cpp
