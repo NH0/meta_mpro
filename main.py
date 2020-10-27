@@ -60,6 +60,7 @@ class Solution(Instance):
         
         inf_x = bisect(self._data_x[:,1],list(np.array(self._data[i]) - np.array([self._rcapt,0])))
         sup_x = bisect(self._data_x[:,1],list(np.array(self._data[i]) + np.array([self._rcapt,0])))
+        
         return inf_x, sup_x
         
     def _reduce_sensors(self,i):
@@ -67,6 +68,7 @@ class Solution(Instance):
         x = bisect(np.array(self.sensors_sorted)[:,1],self._data[i])
         inf_x = bisect(np.array(self.sensors_sorted)[:,1],list(np.array(self._data[i]) - np.array([self._rcom,0])))
         sup_x = bisect(np.array(self.sensors_sorted)[:,1],list(np.array(self._data[i]) + np.array([self._rcom,0])))
+        
         return x, inf_x, sup_x
         
     def add_sensor(self,i):
@@ -97,6 +99,7 @@ class Solution(Instance):
     def remove_sensor(self,i):
         
         self.sensors.remove_node(i)
+        self.sensors_sorted.remove([i,self._data[i]])
         
         inf_x, sup_x = self._reduce_target(i)    
         for j in range(inf_x, sup_x):
@@ -104,13 +107,13 @@ class Solution(Instance):
             if i in self.target_coverage[x_j]:
                 self.target_coverage[x_j].remove(i)
                 
-    def _is_removable(self,i):
-        
-        for target in self.sensor_coverage[i]:
-            if len(self.target_coverage[target]) <= self._k:
-                return False
-        
-        return True
+    # def _is_removable(self,i):
+    #     
+    #     for target in self.sensor_coverage[i]:
+    #         if len(self.target_coverage[target]) <= self._k:
+    #             return False
+    #     
+    #     return True
                 
     def to_be_removed(self):
         
@@ -150,7 +153,7 @@ class Solution(Instance):
 
 Solution1 = Solution(NAME)
 t = time()
-for i in sample(range(1,1500),1499):
+for i in range(1500):
     Solution1.add_sensor(i)
 t1 = time()
 print(t1-t)
@@ -161,13 +164,6 @@ Solution1.optimize_locally()
 t3 = time()
 print(Solution1.score())
 print(t3-t2)
-
-
-
-
-
-
-
 
 
 
