@@ -51,6 +51,7 @@ class Solution(Instance):
         Instance.__init__(self, name, ind_radius, ind_k, path)
         self.sensors = nx.Graph()
         self.sensors.add_node(0)
+        self.sensors_sorted = [[0,[0., 0.]]]
         self.counter = 0
         self.target_coverage = defaultdict(list)
         self.sensor_coverage = defaultdict(list)
@@ -61,16 +62,27 @@ class Solution(Instance):
         sup_x = bisect(self._data_x[:,1],list(np.array(self._data[i]) + np.array([self._rcapt,0])))
         return inf_x, sup_x
         
-    # def _reduce_sensors(self,i):
-    #     
-    #     x = bisect(self.sensors_linked,self._data[i])
-    #     inf_x = bisect(self.sensors,list(np.array(self._data[i]) - np.array([self._rcom,0])))
-    #     sup_x = bisect(self.sensors,list(np.array(self._data[i]) + np.array([self._rcom,0])))
-    #     return x, inf_x, sup_x
+    def _reduce_sensors(self,i):
+        
+        x = bisect(np.array(self.sensors_sorted)[:,1],self._data[i])
+        inf_x = bisect(np.array(self.sensors_sorted)[:,1],list(np.array(self._data[i]) - np.array([self._rcom,0])))
+        sup_x = bisect(np.array(self.sensors_sorted)[:,1],list(np.array(self._data[i]) + np.array([self._rcom,0])))
+        return x, inf_x, sup_x
         
     def add_sensor(self,i):
         
         self.sensors.add_node(i)
+        x, inf_x, sup_x = self._reduce_sensors(i)
+        self.sensors_sorted.insert(x, [i,self._data[i]])
+        
+        for j in range(inf_x, sup_x):
+            x_j = self.sensors_sorted[j][0]
+            if self._distance_ind(i,x_j) < self._rcom:
+                self.sensors.add_edge(i,x_j)
+                
+        # for j in self.sensors.nodes:
+        #     if self._distance_ind(i,j) < self._rcom:
+        #         self.sensors.add_edge(i,j)
         
         inf_x, sup_x = self._reduce_target(i)
         self.counter += sup_x-inf_x
@@ -80,9 +92,6 @@ class Solution(Instance):
                 self.target_coverage[x_j].append(i)
                 self.sensor_coverage[i].append(x_j)
     
-        for j in self.sensors.nodes:
-            if self._distance_ind(i,j) < self._rcom:
-                self.sensors.add_edge(i,j)
                 
     
     def remove_sensor(self,i):
@@ -103,7 +112,18 @@ class Solution(Instance):
         
         return True
                 
+    def to_be_removed(self):
+        
+        sensor_to_be_removed = 0
+        min0 = 0
+        for sensor in self.sensors.nodes:
+            if sensor >0:
+                L = list(map(lambda target:len(self.target_coverage[target]),self.sensor_coverage[sensor]))
+                if min(L) > min0:
+                    sensor_to_be_removed = sensor
+                    min0 = min(L)            
                 
+        return sensor_to_be_removed            
                 
     def is_admissible(self):
         
@@ -114,20 +134,33 @@ class Solution(Instance):
                 
         return nx.is_connected(self.sensors)
         
+    def score(self):
+        
+        return len(self.sensors.nodes)
+        
+    def optimize_locally(self):
+        
+        while self.is_admissible():
+            to_remove = self.to_be_removed()
+            self.remove_sensor(to_remove)
+            
+        
             
         
 
 Solution1 = Solution(NAME)
 t = time()
-for i in sample(range(1,1500),1000):
+for i in sample(range(1,1500),1499):
     Solution1.add_sensor(i)
 t1 = time()
 print(t1-t)
 print(Solution1.is_admissible())
 t2 = time()
 print(t2-t1)
-
-
+Solution1.optimize_locally()
+t3 = time()
+print(Solution1.score())
+print(t3-t2)
 
 
 
