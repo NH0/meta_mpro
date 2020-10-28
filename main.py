@@ -2,7 +2,7 @@ import numpy as np
 from collections import defaultdict
 from bisect import bisect
 from time import time
-from random import sample
+from random import sample, choice
 import networkx as nx
 
 
@@ -117,14 +117,17 @@ class Solution(Instance):
                 
     def to_be_removed(self):
         
-        sensor_to_be_removed = 0
+        sensor_to_be_removed = []
         min0 = 0
         for sensor in self.sensors.nodes:
             if sensor >0:
                 L = list(map(lambda target:len(self.target_coverage[target]),self.sensor_coverage[sensor]))
-                if min(L) > min0:
-                    sensor_to_be_removed = sensor
-                    min0 = min(L)            
+                if min(L) >= min0:
+                    if min(L) > min0:
+                        sensor_to_be_removed = [sensor]
+                        min0 = min(L) 
+                    else:
+                        sensor_to_be_removed.append(sensor)
                 
         return sensor_to_be_removed            
                 
@@ -132,7 +135,6 @@ class Solution(Instance):
         
         for i in range(self._n):
             if len(self.target_coverage[i]) < self._k:
-                print(i)
                 return False
                 
         return nx.is_connected(self.sensors)
@@ -141,31 +143,62 @@ class Solution(Instance):
         
         return len(self.sensors.nodes)
         
+    # def optimize_locally(self):
+    #     
+    #     while self.is_admissible():
+    #         to_remove = self.to_be_removed()[0]
+    #         self.remove_sensor(to_remove)
+    #     self.add_sensor(to_remove)
+        
     def optimize_locally(self):
         
-        while self.is_admissible():
+        bool = True
+        while bool:
+
             to_remove = self.to_be_removed()
-            self.remove_sensor(to_remove)
-            
+            bool = False
+            i=0
+            while not bool and i<len(to_remove):
+                self.remove_sensor(to_remove[i])
+                if self.is_admissible():
+                    bool = True
+                else:
+                    self.add_sensor(to_remove[i])
+                i+=1    
         
             
         
 
-Solution1 = Solution(NAME)
-t = time()
-for i in range(1500):
-    Solution1.add_sensor(i)
-t1 = time()
-print(t1-t)
-print(Solution1.is_admissible())
-t2 = time()
-print(t2-t1)
-Solution1.optimize_locally()
-t3 = time()
-print(Solution1.score())
-print(t3-t2)
+# Solution1 = Solution(NAME)
+# t = time()
+# for i in range(1500):
+#     Solution1.add_sensor(i)
+# t1 = time()
+# print(t1-t)
+# print(Solution1.is_admissible())
+# t2 = time()
+# print(t2-t1)
+# Solution1.optimize_locally()
+# t3 = time()
+# print(Solution1.score())
+# print(t3-t2)
 
-
+compteur = 0
+score = 0
+score_min = 1500
+for j in range(50):
+    Solution1 = Solution(NAME)
+    print(j)
+    for i in sample(range(1,1500),1400):
+        Solution1.add_sensor(i)
+    if Solution1.is_admissible():
+        compteur += 1
+        Solution1.optimize_locally()
+        score += Solution1.score()
+        if Solution1.score() < score_min:
+            score_min = Solution1.score()
+        print(Solution1.score())
+print(score/compteur)
 
 
 
