@@ -120,20 +120,18 @@ class Solution(Instance):
         
         sensor_to_be_removed = []
         if min0>0:
-            for sensor in self.sensors.nodes:
-                if sensor >0:
-                    L = list(map(lambda target:len(self.target_coverage[target]),self.sensor_coverage[sensor]))
-                    if min(L) >= min0:
-                        sensor_to_be_removed.append(sensor)
+            for sensor in list(self.sensors.nodes)[1:]:
+                L = list(map(lambda target:len(self.target_coverage[target]),self.sensor_coverage[sensor]))
+                if min(L) >= min0:
+                    sensor_to_be_removed.append(sensor)
         else:
-            for sensor in self.sensors.nodes:
-                if sensor >0:
-                    L = list(map(lambda target:len(self.target_coverage[target]),self.sensor_coverage[sensor]))
-                    if min(L) > min0:
-                        sensor_to_be_removed = [sensor]
-                        min0 = min(L) 
-                    elif min(L) == min0:
-                        sensor_to_be_removed.append(sensor)
+            for sensor in list(self.sensors.nodes)[1:]:
+                L = list(map(lambda target:len(self.target_coverage[target]),self.sensor_coverage[sensor]))
+                if min(L) > min0:
+                    sensor_to_be_removed = [sensor]
+                    min0 = min(L) 
+                elif min(L) == min0:
+                    sensor_to_be_removed.append(sensor)
                 
         return min0, sensor_to_be_removed            
                 
@@ -188,7 +186,7 @@ class Solution(Instance):
         
         
         plt.show()
-            
+
         
             ##
         
