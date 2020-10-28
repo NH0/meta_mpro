@@ -8,6 +8,7 @@ Instances
 *.dat
 *.pdf
 *.zip
+*.png
 
 # Ignore unused code
 main.cpp

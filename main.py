@@ -5,6 +5,7 @@ from time import time
 from random import sample
 import networkx as nx
 import matplotlib.pyplot as plt
+import matplotlib.patches as ptc
 
 
 from configuration import PATH, NAME
@@ -116,24 +117,24 @@ class Solution(Instance):
     #     
     #     return True
                 
-    def to_be_removed(self,min0=0):
+    def to_be_removed(self,min_coverage=0):
         
         sensor_to_be_removed = []
-        if min0>0:
+        if min_coverage>0:
             for sensor in list(self.sensors.nodes)[1:]:
                 L = list(map(lambda target:len(self.target_coverage[target]),self.sensor_coverage[sensor]))
-                if min(L) >= min0:
+                if min(L) >= min_coverage:
                     sensor_to_be_removed.append(sensor)
         else:
             for sensor in list(self.sensors.nodes)[1:]:
                 L = list(map(lambda target:len(self.target_coverage[target]),self.sensor_coverage[sensor]))
-                if min(L) > min0:
+                if min(L) > min_coverage:
                     sensor_to_be_removed = [sensor]
-                    min0 = min(L) 
-                elif min(L) == min0:
+                    min_coverage = min(L)
+                elif min(L) == min_coverage:
                     sensor_to_be_removed.append(sensor)
                 
-        return min0, sensor_to_be_removed            
+        return min_coverage, sensor_to_be_removed
                 
     def is_admissible(self):
         
@@ -154,20 +155,20 @@ class Solution(Instance):
     #         self.remove_sensor(to_remove)
     #     self.add_sensor(to_remove)
         
-    def optimize_locally(self):
+    def optimize_locally(self, r_max=2):
         
-        bool = True
-        while bool:
-            bool = False
+        admissible = True
+        while admissible:
+            admissible = False
             r=0
             min0=0
-            while not bool and r<2:
+            while not admissible and r<r_max:
                 i=0
                 min0, to_remove = self.to_be_removed(min0)
-                while not bool and i<len(to_remove):
+                while not admissible and i<len(to_remove):
                     self.remove_sensor(to_remove[i])
                     if self.is_admissible():
-                        bool = True
+                        admissible = True
                     else:
                         self.add_sensor(to_remove[i])
                     i+=1   
@@ -177,23 +178,31 @@ class Solution(Instance):
 
                 
     def plot_sensors(self):
+
+        _, ax = plt.subplots()
         
         for i in range(self._n):
             plt.scatter(*self._data[i],c="b")
         
         for i in self.sensors.nodes:
-            plt.scatter(*self._data[i],c="r")
+            x, y = self._data[i][0], self._data[i][1]
+            plt.scatter(x, y, c="r")
+            circle = ptc.Circle((x, y), radius=self._rcapt, ec="g", fc=(0,0,0,0.001), lw=0.5)
+            ax.add_artist(circle)
         
         
         plt.show()
 
         
             ##
+
+def quartering(solution, size=20):
+    return 0
         
 
-Solution1 = Solution(NAME,3,2)
+Solution1 = Solution(NAME)
 t = time()
-for i in range(1500):
+for i in range(225):
     Solution1.add_sensor(i)
 t1 = time()
 print(t1-t)
