@@ -75,7 +75,7 @@ class Solution(Instance):
         x, inf_x, sup_x = self._reduce_sensors(i)
         self.sensors_sorted.insert(x, [i,self._data[i]])
         
-        for j in range(inf_x, sup_x):
+        for j in range(max(inf_x-1,0), min(sup_x+1,len(self.sensors_sorted))):
             x_j = self.sensors_sorted[j][0]
             if self._distance_ind(i,x_j) < self._rcom:
                 self.sensors.add_edge(i,x_j)
@@ -86,7 +86,7 @@ class Solution(Instance):
         
         inf_x, sup_x = self._reduce_target(i)
         self.counter += sup_x-inf_x
-        for j in range(inf_x, sup_x):
+        for j in range(max(inf_x-1,0), min(sup_x+1,self._n)):
             x_j = self._data_x[j][0]
             if self._distance_ind(i,x_j) < self._rcapt:
                 self.target_coverage[x_j].append(i)
@@ -98,6 +98,7 @@ class Solution(Instance):
         
         self.sensors.remove_node(i)
         self.sensors_sorted.remove([i,self._data[i]])
+        del self.sensor_coverage[i]
         
         inf_x, sup_x = self._reduce_target(i)    
         for j in range(inf_x, sup_x):
@@ -113,13 +114,13 @@ class Solution(Instance):
     #     
     #     return True
                 
-    def to_be_removed(self,min_coverage=0):
+    def to_be_removed(self,min_coverage=0,r=0):
         
         sensor_to_be_removed = []
         if min_coverage>0:
             for sensor in list(self.sensors.nodes)[1:]:
                 L = list(map(lambda target:len(self.target_coverage[target]),self.sensor_coverage[sensor]))
-                if min(L) >= min_coverage:
+                if min(L) == min_coverage-r:
                     sensor_to_be_removed.append(sensor)
         else:
             for sensor in list(self.sensors.nodes)[1:]:
@@ -134,7 +135,7 @@ class Solution(Instance):
                 
     def is_admissible(self):
         
-        for i in range(self._n):
+        for i in range(1,self._n):
             if len(self.target_coverage[i]) < self._k:
                 return False
                 
@@ -157,10 +158,10 @@ class Solution(Instance):
         while admissible:
             admissible = False
             r=0
-            min0=0
+            min_coverage=0
             while not admissible and r<r_max:
                 i=0
-                min0, to_remove = self.to_be_removed(min0)
+                min_coverage, to_remove = self.to_be_removed(min_coverage,r)
                 while not admissible and i<len(to_remove):
                     self.remove_sensor(to_remove[i])
                     if self.is_admissible():
@@ -169,7 +170,6 @@ class Solution(Instance):
                         self.add_sensor(to_remove[i])
                     i+=1   
                 r+=1
-                min0-=1
                 
 
                 
@@ -243,7 +243,7 @@ def quartering(solution, size=20):
 
 Solution1 = Solution(NAME)
 t = time()
-for i in range(225):
+for i in range(1,1500):
     Solution1.add_sensor(i)
 t1 = time()
 print(t1-t)
