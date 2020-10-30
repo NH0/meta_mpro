@@ -179,7 +179,6 @@ class Solution(Instance):
                 max_coverage = len(self.target_coverage[i])    
 
         for i_test in i_max:
-
             to_test = self.target_coverage[i_test][:]
             if i_test in self.sensors.nodes:
                 switch = list(combinations(self.sensor_coverage[i_test], len(self.target_coverage[i_test])-1))
@@ -188,7 +187,8 @@ class Solution(Instance):
                 targets = self.sensor_coverage[i_test][:]
                 self.remove_sensor(i_test)
                 switch = list(combinations(targets, len(self.target_coverage[i_test])-1))
-
+            if len(switch) > 5000:
+                switch = sample(switch,5000)
             for sensor in to_test:
                 self.remove_sensor(sensor)
         
@@ -248,7 +248,7 @@ def quartering(solution, size=20):
     return 0
         
 
-Solution1 = Solution(NAME)
+Solution1 = Solution(NAME,0,2)
 t = time()
 for i in range(1,1500):
     Solution1.add_sensor(i)
@@ -261,7 +261,9 @@ Solution1.optimize_locally()
 t3 = time()
 print(Solution1.score())
 print(t3-t2)
+t4 = time()
 Solution1.optimize_voisi()
+print(t4-t3)
 print(Solution1.score())
 Solution1.plot_sensors()
 Solution1.optimize_locally()
