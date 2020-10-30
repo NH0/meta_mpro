@@ -166,18 +166,26 @@ class Solution(Instance):
             else:
                 self.add_sensor(i)
         return False
-        
-    def voisinage(self):
-        
-        max_coverage = 0
+    
+    def find_max_coverage(self, max_coverage, q):
         i_max = []
-        for i in range(1,self._n):
-            if len(self.target_coverage[i]) == max_coverage:
-                i_max.append(i)
-            if len(self.target_coverage[i]) > max_coverage:
-                i_max = [i]
-                max_coverage = len(self.target_coverage[i])    
-
+        if max_coverage == 0:
+            for i in range(1,self._n):
+                if len(self.target_coverage[i]) == max_coverage:
+                    i_max.append(i)
+                if len(self.target_coverage[i]) > max_coverage:
+                    i_max = [i]
+                    max_coverage = len(self.target_coverage[i])   
+        else:
+            for i in range(1,self._n):
+                if len(self.target_coverage[i]) == max_coverage - q:
+                    i_max.append(i)
+        return i_max, max_coverage            
+        
+        
+    def voisinage(self, max_coverage=0, q=0, k=1):
+        
+        i_max, max_coverage = self.find_max_coverage(max_coverage, q)
         for i_test in i_max:
             to_test = self.target_coverage[i_test][:]
             if i_test in self.sensors.nodes:
@@ -186,9 +194,9 @@ class Solution(Instance):
                 self.add_sensor(i_test)
                 targets = self.sensor_coverage[i_test][:]
                 self.remove_sensor(i_test)
-                switch = list(combinations(targets, len(self.target_coverage[i_test])-1))
-            if len(switch) > 5000:
-                switch = sample(switch,5000)
+                switch = list(combinations(targets, len(self.target_coverage[i_test])-k))
+            # if len(switch) > 5000:
+            #     switch = sample(switch,5000)
             for sensor in to_test:
                 self.remove_sensor(sensor)
         
@@ -198,9 +206,9 @@ class Solution(Instance):
                     self.add_sensor(j)
             else:
                 print("score: ",self.score())
-                return 1
+                return 1, max_coverage
             
-        return 0
+        return 0, max_coverage
     
     def is_switchable(self,switch):
         
@@ -221,9 +229,13 @@ class Solution(Instance):
         
         voisi = True
         while voisi:
-            voisi = Solution1.voisinage()
-        
-                
+            voisi, m = Solution1.voisinage()
+        while voisi:
+            voisi, m = Solution1.voisinage(m,1)
+        while voisi:
+            voisi, m = Solution1.voisinage(m,1)
+         
+         
     def plot_sensors(self):
 
         _, ax = plt.subplots()
@@ -238,8 +250,10 @@ class Solution(Instance):
             circle = ptc.Circle((x, y), radius=self._rcapt, ec="g", fc=(0,0,0,0.001), lw=0.5)
             ax.add_artist(circle)
         
-        
         plt.show()
+    
+    
+        
 
         
             ##
@@ -248,7 +262,7 @@ def quartering(solution, size=20):
     return 0
         
 
-Solution1 = Solution(NAME,0,2)
+Solution1 = Solution(NAME)
 t = time()
 for i in range(1,1500):
     Solution1.add_sensor(i)
@@ -261,8 +275,8 @@ Solution1.optimize_locally()
 t3 = time()
 print(Solution1.score())
 print(t3-t2)
-t4 = time()
 Solution1.optimize_voisi()
+t4 = time()
 print(t4-t3)
 print(Solution1.score())
 Solution1.plot_sensors()
