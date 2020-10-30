@@ -6,6 +6,7 @@ from random import sample
 import networkx as nx
 import matplotlib.pyplot as plt
 import matplotlib.patches as ptc
+from itertools import combinations
 
 
 from configuration import PATH, NAME
@@ -81,7 +82,7 @@ class Solution(Instance):
         
         for j in range(max(inf_x-1,0), min(sup_x+1,len(self.sensors_sorted))):
             x_j = self.sensors_sorted[j][0]
-            if self._distance_ind(i,x_j) < self._rcom:
+            if self._distance_ind(i,x_j) < self._rcom and i != x_j:
                 self.sensors.add_edge(i,x_j)
                 
         # for j in self.sensors.nodes:
@@ -105,18 +106,10 @@ class Solution(Instance):
         del self.sensor_coverage[i]
         
         inf_x, sup_x = self._reduce_target(i)    
-        for j in range(inf_x, sup_x):
+        for j in range(max(inf_x-1,0), min(sup_x+1,self._n)):
             x_j = self._data_x[j][0]
             if i in self.target_coverage[x_j]:
                 self.target_coverage[x_j].remove(i)
-                
-    # def _is_removable(self,i):
-    #     
-    #     for target in self.sensor_coverage[i]:
-    #         if len(self.target_coverage[target]) <= self._k:
-    #             return False
-    #     
-    #     return True
                 
     def to_be_removed(self,min_coverage=0,r=0):
         
@@ -147,39 +140,94 @@ class Solution(Instance):
         
     def score(self):
         
-        return len(self.sensors.nodes)
-        
-    # def optimize_locally(self):
-    #     
-    #     while self.is_admissible():
-    #         to_remove = self.to_be_removed()[0]
-    #         self.remove_sensor(to_remove)
-    #     self.add_sensor(to_remove)
+        return len(self.sensors.nodes)-1
         
     def optimize_locally(self, r_max=2):
         
         admissible = True
         while admissible:
-            admissible = False
-            r=0
-            min_coverage=0
-            while not admissible and r<r_max:
-                i=0
-                min_coverage, to_remove = self.to_be_removed(min_coverage,r)
-                while not admissible and i<len(to_remove):
-                    self.remove_sensor(to_remove[i])
-                    if self.is_admissible():
-                        admissible = True
-                    else:
-                        self.add_sensor(to_remove[i])
-                    i+=1   
-                r+=1
+            admissible = self.is_removable_through_r(r_max)
+    
+    def is_removable_through_r(self, r_max):
+        
+        min_coverage=0
+        for r in range(r_max):
+            min_coverage, to_remove = self.to_be_removed(min_coverage,r)
+            if self.is_removable(to_remove):
+                return True
+        return False
                 
+    def is_removable(self, to_remove):
+        
+        for i in to_remove:
+            self.remove_sensor(i)
+            if self.is_admissible():
+                return True
+            else:
+                self.add_sensor(i)
+        return False
+        
+    def voisinage(self):
+        
+        max_coverage = 0
+        i_max = []
+        for i in range(1,self._n):
+            if len(self.target_coverage[i]) == max_coverage:
+                i_max.append(i)
+            if len(self.target_coverage[i]) > max_coverage:
+                i_max = [i]
+                max_coverage = len(self.target_coverage[i])    
 
+        for i_test in i_max:
+
+            to_test = self.target_coverage[i_test][:]
+            if i_test in self.sensors.nodes:
+                switch = list(combinations(self.sensor_coverage[i_test], len(self.target_coverage[i_test])-1))
+            else:
+                self.add_sensor(i_test)
+                targets = self.sensor_coverage[i_test][:]
+                self.remove_sensor(i_test)
+                switch = list(combinations(targets, len(self.target_coverage[i_test])-1))
+
+            for sensor in to_test:
+                self.remove_sensor(sensor)
+        
+            if not self.is_switchable(switch):
+                print("fail")
+                for j in to_test:
+                    self.add_sensor(j)
+            else:
+                print("score: ",self.score())
+                return 1
+            
+        return 0
+    
+    def is_switchable(self,switch):
+        
+        for i in range(len(switch)):
+            try_switch = switch[i]
+            for sensor in try_switch:
+                self.add_sensor(sensor)
+            if not self.is_admissible():
+                for sensor in try_switch:
+                    self.remove_sensor(sensor)
+            else:
+                return True
+        return False
+                
+        
+            
+    def optimize_voisi(self):
+        
+        voisi = True
+        while voisi:
+            voisi = Solution1.voisinage()
+        
                 
     def plot_sensors(self):
 
         _, ax = plt.subplots()
+        ax.set_aspect('equal', adjustable='box')
         
         for i in range(self._n):
             plt.scatter(*self._data[i],c="b")
@@ -213,13 +261,17 @@ Solution1.optimize_locally()
 t3 = time()
 print(Solution1.score())
 print(t3-t2)
+Solution1.optimize_voisi()
+print(Solution1.score())
 Solution1.plot_sensors()
+Solution1.optimize_locally()
 
+# 
 # compteur = 0
 # score = 0
 # score_min = 1500
 # for j in range(50):
-#     Solution1 = Solution(NAME,0,2)
+#     Solution1 = Solution(NAME)
 #     print(j)
 #     for i in sample(range(1,1500),1400):
 #         Solution1.add_sensor(i)
