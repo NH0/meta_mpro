@@ -8,9 +8,9 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as ptc
 from itertools import combinations
 
-
+import utils as utils
+import vns as vns
 from configuration import PATH, NAME
-from utils import distance
 from quartering import quartering
 
 class Instance:
@@ -36,13 +36,13 @@ class Instance:
             line = list(map(float,line[1:]))
             self._data[i] = line
             
-        self._data_x = np.array(sorted(self._data.items(), key=lambda x: x[1][0]))
-        self._data_y = np.array(sorted(self._data.items(), key=lambda x: x[1][1]))
+        self._data_x = np.array(sorted(self._data.items(), key=lambda x: x[1][0]), dtype=object)
+        self._data_y = np.array(sorted(self._data.items(), key=lambda x: x[1][1]), dtype=object)
         self._n = len(self._data)
     
     def _distance_ind(self,i,j):
         
-        return distance(self._data[i],self._data[j])  
+        return utils.distance(self._data[i],self._data[j])  
 
 class Solution(Instance):
 
@@ -64,9 +64,9 @@ class Solution(Instance):
         
     def _reduce_sensors(self,i):
         
-        x = bisect(np.array(self.sensors_sorted)[:,1],self._data[i])
-        inf_x = bisect(np.array(self.sensors_sorted)[:,1],list(np.array(self._data[i]) - np.array([self._rcom,0])))
-        sup_x = bisect(np.array(self.sensors_sorted)[:,1],list(np.array(self._data[i]) + np.array([self._rcom,0])))
+        x = bisect(np.array(self.sensors_sorted, dtype=object)[:,1],self._data[i])
+        inf_x = bisect(np.array(self.sensors_sorted, dtype=object)[:,1],list(np.array(self._data[i]) - np.array([self._rcom,0])))
+        sup_x = bisect(np.array(self.sensors_sorted, dtype=object)[:,1],list(np.array(self._data[i]) + np.array([self._rcom,0])))
         
         return x, inf_x, sup_x
         
@@ -123,14 +123,22 @@ class Solution(Instance):
                     sensor_to_be_removed.append(sensor)
                 
         return min_coverage, sensor_to_be_removed
+
+    def is_connected(self):
+
+        return nx.is_connected(self.sensors)
+
+    def is_covered(self):
+        for i in range(1,self._n):
+            if len(self.target_coverage[i]) < self._k:
+
+                return False, i
+        
+        return True, -1
                 
     def is_admissible(self):
         
-        for i in range(1,self._n):
-            if len(self.target_coverage[i]) < self._k:
-                return False
-                
-        return nx.is_connected(self.sensors)
+        return self.is_connected() and self.is_covered()[0]
         
     def score(self):
         
@@ -177,7 +185,11 @@ class Solution(Instance):
         return i_max, max_coverage            
         
         
-    def voisinage(self, max_coverage=0, q=0, k=1):
+    def voisinage1(self, max_coverage=0, q=0, nb_removed=1):
+        """
+        q : le q ième plus grand nombre de capteurs
+        nb_removed : on retire p et on ajoute p-i
+        """
         
         i_max, max_coverage = self.find_max_coverage(max_coverage, q)
         for i_test in i_max:
@@ -188,7 +200,7 @@ class Solution(Instance):
                 self.add_sensor(i_test)
                 targets = self.sensor_coverage[i_test][:]
                 self.remove_sensor(i_test)
-                switch = list(combinations(targets, len(self.target_coverage[i_test])-k))
+                switch = list(combinations(targets, len(self.target_coverage[i_test])-nb_removed))
             # if len(switch) > 5000:
             #     switch = sample(switch,5000)
             for sensor in to_test:
@@ -216,18 +228,84 @@ class Solution(Instance):
             else:
                 return True
         return False
-                
+    
+    def add_sensor_close_to_target(self, target_index):
+        if target_index in self.sensors.nodes:
+            index_neighboors = np.array(sorted(self._data.items(),
+                                        key=lambda x: utils.distance(x[1][0], self._data[target_index][1])), dtype=object)
+            i = 0
+            while index_neighboors[i][0] in self.sensors.nodes:
+                i += 1
+            self.add_sensor(i)
+        else:
+            self.add_sensor(target_index)
+    
+    def voisinage2(self, nb_removed = 4):
+        to_be_removed = np.random.Generator.choice(list(self.sensors.nodes), 
+                        size=nb_removed, replace=False, shuffle=False)
+        for sensor in to_be_removed:
+            self.remove_sensor(sensor)
         
+        nb_added = 0
+
+        is_covered, index_not_covered = self.is_covered()
+        while not(is_covered):
+            self.add_sensor_close_to_target(target_index = index_not_covered)
+            nb_added += 1
+            is_covered, index_not_covered = self.is_covered()
+            
+        while not(self.is_connected()):
+            connected_components = nx.connected_components(self.sensors)
+            component_with_00 = nx.node_connected_component(self.sensors, self.target_coverage[0])
+
+            # Choose the closest component X to the component Y containing (0,0)
+            random_element_connected_to_00 = np.choice(component_with_00, size=1)
+            smallest_distance_to_random_element = np.inf
+            closest_component = None
+            for component in connected_components:
+                if random_element_connected_to_00 in component:
+                    pass
+                for node in component:
+                    distance_to_random_element = self._distance_ind(node, random_element_connected_to_00)
+                    if distance_to_random_element < smallest_distance_to_random_element:
+                        smallest_distance_to_random_element = distance_to_random_element
+                        closest_component = component
+            
+            # Choose the closest node y0 to a random x of X, in the component (0,0)
+            random_element_component = np.choice(closest_component, size=1)
+            smallest_distance_to_component = np.inf
+            closest_node = -1
+            for node in component_with_00:
+                distance_to_component = self._distance_ind(node, random_element_component)
+                if distance_to_component < smallest_distance_to_component:
+                    smallest_distance_to_component = distance_to_component
+                    closest_node = node
+            
+            # Choose the closest node to y0, in the component X
+            smallest_distance_to_closest_node = smallest_distance_to_component
+            closest_node_in_component = random_element_component
+            for node in component:
+                distance_to_closest_node = self._distance_ind(node, closest_node)
+                if distance_to_closest_node < smallest_distance_to_closest_node:
+                    smallest_distance_to_closest_node = distance_to_closest_node
+                    closest_node_in_component = node
+            
+            barycenter = utils.compute_barycenter([self._data[closest_node], self._data[closest_node_in_component]])
+            closest_target = utils.find_closest(barycenter, self._data.items())
+            self.add_sensor_close_to_target(closest_target)
+
+        return nb_removed - nb_added
+          
             
     def optimize_voisi(self):
         
         voisi = True
         while voisi:
-            voisi, m = Solution1.voisinage()
+            voisi, m = Solution1.voisinage1()
         while voisi:
-            voisi, m = Solution1.voisinage(m,1)
+            voisi, m = Solution1.voisinage1(m,1)
         while voisi:
-            voisi, m = Solution1.voisinage(m,1)
+            voisi, m = Solution1.voisinage1(m,1)
          
          
     def plot_sensors(self):
@@ -263,13 +341,17 @@ Solution1.optimize_locally()
 t3 = time()
 print(Solution1.score())
 print(t3-t2)
-quartering(Solution1)
-Solution1.optimize_voisi()
-t4 = time()
-print(t4-t3)
+#quartering(Solution1)
+#Solution1.optimize_voisi()
+#t4 = time()
+#print(t4-t3)
+#print(Solution1.score())
+vns.start_vns(Solution1)
+t5 = time()
+print("VNS time : ",t5-t4, end="")
 print(Solution1.score())
-Solution1.plot_sensors()
-Solution1.optimize_locally()
+#Solution1.plot_sensors()
+#Solution1.optimize_locally()
 
 # 
 # compteur = 0
