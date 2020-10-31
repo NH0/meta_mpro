@@ -8,6 +8,11 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as ptc
 from itertools import combinations
 
+import logging
+logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.INFO)
+
+import inspect
+
 import utils as utils
 import vns as vns
 from configuration import PATH, NAME
@@ -71,14 +76,17 @@ class Solution(Instance):
         return x, inf_x, sup_x
         
     def add_sensor(self,i):
-        
+        if i in self.sensors.nodes:
+            logging.warning(" {} already a sensor ...\n\t{}".format(i, inspect.getframeinfo(inspect.currentframe().f_back)))
+            return 0
+
         self.sensors.add_node(i)
         x, inf_x, sup_x = self._reduce_sensors(i)
         self.sensors_sorted.insert(x, [i,self._data[i]])
         
         for j in range(max(inf_x-1,0), min(sup_x+1,len(self.sensors_sorted))):
             x_j = self.sensors_sorted[j][0]
-            if self._distance_ind(i,x_j) < self._rcom and i != x_j:
+            if self._distance_ind(i,x_j) <= self._rcom and i != x_j:
                 self.sensors.add_edge(i,x_j)
                 
         # for j in self.sensors.nodes:
@@ -89,7 +97,7 @@ class Solution(Instance):
         self.counter += sup_x-inf_x
         for j in range(max(inf_x-1,0), min(sup_x+1,self._n)):
             x_j = self._data_x[j][0]
-            if self._distance_ind(i,x_j) < self._rcapt:
+            if self._distance_ind(i,x_j) <= self._rcapt:
                 self.target_coverage[x_j].append(i)
                 self.sensor_coverage[i].append(x_j)
 
@@ -195,8 +203,9 @@ class Solution(Instance):
         i_max, max_coverage = self.find_max_coverage(max_coverage, q)
         for i_test in i_max:
             to_test = self.target_coverage[i_test][:]
+            logging.debug("Removing sensors {}\tTarget node is {}".format(to_test, i_test))
             if i_test in self.sensors.nodes:
-                switch = list(combinations(self.sensor_coverage[i_test], len(self.target_coverage[i_test])-1))
+                switch = list(combinations(self.sensor_coverage[i_test], len(self.target_coverage[i_test])-nb_removed))
             else:
                 self.add_sensor(i_test)
                 targets = self.sensor_coverage[i_test][:]
@@ -208,11 +217,11 @@ class Solution(Instance):
                 self.remove_sensor(sensor)
         
             if not self.is_switchable(switch):
-                #print("fail")
-                for j in to_test:
-                    self.add_sensor(j)
+                logging.debug("Neighborhood 1 : Switch fail around {}".format(i_test))
+                for sensor in to_test:
+                    self.add_sensor(sensor)
             else:
-                #print("score: ",self.score())
+                logging.debug("Neighborhood 1 : Switch sucess around {}\tNew score {}".format(i_test,self.score()))
                 return 1, max_coverage
             
         return 0, max_coverage
@@ -237,9 +246,11 @@ class Solution(Instance):
             i = 0
             while index_neighboors[i][0] in self.sensors.nodes:
                 i += 1
-            self.add_sensor(i)
+            self.add_sensor(index_neighboors[i][0])
+            logging.debug("close to target : added sensor (neighbor of {}) {}".format(target_index, index_neighboors[i][0]))
         else:
             self.add_sensor(target_index)
+            logging.debug("close to target : added sensor {}".format(target_index))
     
     def voisinage2(self, nb_removed = 4):
         random_generator = np.random.default_rng()
@@ -251,6 +262,7 @@ class Solution(Instance):
         else:
             to_be_removed = random_generator.choice(list(self.sensors.nodes), 
                             size=nb_removed, replace=False, shuffle=True)
+        logging.debug("Neighborhood 2 : Removing {} sensors".format(to_be_removed))
         for sensor in to_be_removed:
             self.remove_sensor(sensor)
         
@@ -264,7 +276,7 @@ class Solution(Instance):
             
         while not(self.is_connected()):
             connected_components = [list(self.sensors.subgraph(component).nodes) for component in nx.connected_components(self.sensors)]
-            #print("{} connected components".format(len(list(connected_components))))
+            logging.debug("Neighborhood 2 : {} connected components".format(len(list(connected_components))))
             while len(self.target_coverage[0]) == 0:
                 self.add_sensor_close_to_target(0)
             component_with_00 = list(nx.node_connected_component(self.sensors, self.target_coverage[0][0]))
@@ -286,7 +298,7 @@ class Solution(Instance):
             # Choose the closest node y0 to a random x of X, in the component (0,0)
             random_element_component = random_generator.choice(closest_component)
             smallest_distance_to_component = np.inf
-            closest_node = -1
+            closest_node = 0
             for node in component_with_00:
                 distance_to_component = self._distance_ind(node, random_element_component)
                 if distance_to_component < smallest_distance_to_component:
@@ -309,7 +321,8 @@ class Solution(Instance):
 
         if not(self.is_admissible()):
             raise ValueError
-
+        
+        logging.debug("Removed {} sensors".format(nb_removed - nb_added))
         return nb_removed - nb_added
           
             
@@ -358,8 +371,7 @@ Solution1.optimize_locally()
 t3 = time()
 print(Solution1.score())
 print(t3-t2)
-#quartering(Solution1)
-#Solution1.optimize_voisi()
+# Solution1.optimize_voisi()
 t4 = time()
 print(t4-t3)
 print(Solution1.score())
@@ -368,7 +380,8 @@ t5 = time()
 print("VNS time : ",t5-t4, end="")
 print(Solution1.score())
 print("Score : ", Solution2.score())
-#Solution1.plot_sensors()
+Solution1.plot_sensors()
+Solution2.plot_sensors()
 #Solution1.optimize_locally()
 
 # 
