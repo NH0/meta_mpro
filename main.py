@@ -2,7 +2,7 @@ import numpy as np
 from collections import defaultdict
 from bisect import bisect
 from time import time
-from random import sample
+from random import sample, shuffle
 import networkx as nx
 import matplotlib.pyplot as plt
 import matplotlib.patches as ptc
@@ -113,26 +113,39 @@ class Solution(Instance):
             if i in self.target_coverage[x_j]:
                 self.target_coverage[x_j].remove(i)
                 
-    def to_be_removed(self,min_coverage=0,r=0):
+    def to_be_removed(self,min_coverage=[0,0],r=0):
         
-        sensor_to_be_removed = []
-        if min_coverage>0:
+        sensor_to_be_removed_1, sensor_to_be_removed_2 = [], []
+        degrees = self.sensors.degree()
+        if min_coverage != [0,0]:
             for sensor in list(self.sensors.nodes)[1:]:
-                L = list(map(lambda target:len(self.target_coverage[target]),self.sensor_coverage[sensor]))
-                if len(L) > 0 and min(L) == min_coverage-r:
-                    sensor_to_be_removed.append(sensor)
+                L1 = list(map(lambda target:len(self.target_coverage[target]),self.sensor_coverage[sensor]))
+                L2 = list(map(lambda target:degrees[target],self.target_coverage[sensor]))
+                if min(L1) == min_coverage[0]-r:
+                    sensor_to_be_removed_1.append(sensor)
+                if min(L2) == min_coverage[1]-r:
+                    sensor_to_be_removed_2.append(sensor)
         else:
             for sensor in list(self.sensors.nodes)[1:]:
-                L = list(map(lambda target:len(self.target_coverage[target]),self.sensor_coverage[sensor]))
-                if len(L) > 0:
-                    if min(L) > min_coverage:
-                        sensor_to_be_removed = [sensor]
-                        min_coverage = min(L)
-                    elif min(L) == min_coverage:
-                        sensor_to_be_removed.append(sensor)
-                
+                L1 = list(map(lambda target:len(self.target_coverage[target]),self.sensor_coverage[sensor]))
+                L2 = list(map(lambda target:degrees[target],self.target_coverage[sensor]))
+                if min(L1) > min_coverage[0]:
+                    sensor_to_be_removed_1 = [sensor]
+                    min_coverage[0] = min(L1)
+                elif min(L1) == min_coverage[0]:
+                    sensor_to_be_removed_1.append(sensor)
+                if min(L2) > min_coverage[1]:
+                    sensor_to_be_removed_2 = [sensor]
+                    min_coverage[1] = min(L2)
+                elif min(L2) == min_coverage[1]:
+                    sensor_to_be_removed_2.append(sensor)
+        
+        sensor_to_be_removed = sensor_to_be_removed_1 + sensor_to_be_removed_2
+        shuffle(sensor_to_be_removed)
+        
         return min_coverage, sensor_to_be_removed
-
+        
+            
     def is_connected(self):
 
         return nx.is_connected(self.sensors)
@@ -161,7 +174,7 @@ class Solution(Instance):
     
     def is_removable_through_r(self, r_max):
         
-        min_coverage=0
+        min_coverage = [0,0]
         for r in range(r_max):
             min_coverage, to_remove = self.to_be_removed(min_coverage,r)
             if self.is_removable(to_remove):
@@ -329,11 +342,7 @@ class Solution(Instance):
         voisi = True
         while voisi:
             voisi, m = Solution1.voisinage1()
-        while voisi:
-            voisi, m = Solution1.voisinage1(m,1)
-        while voisi:
-            voisi, m = Solution1.voisinage1(m,1)
-               
+
     def plot_sensors(self):
 
         _, ax = plt.subplots()
