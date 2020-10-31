@@ -27,7 +27,7 @@ def compute_barycenter(list_targets):
     x_mean = compute_mean(list_targets, 0)
     y_mean = compute_mean(list_targets, 1)
 
-    return [x_mean, y_mean]
+    return [-1, [x_mean, y_mean]]
 
 def find_closest_target(list_targets):
     barycenter = compute_barycenter(list_targets)

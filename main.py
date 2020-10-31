@@ -111,16 +111,17 @@ class Solution(Instance):
         if min_coverage>0:
             for sensor in list(self.sensors.nodes)[1:]:
                 L = list(map(lambda target:len(self.target_coverage[target]),self.sensor_coverage[sensor]))
-                if min(L) == min_coverage-r:
+                if len(L) > 0 and min(L) == min_coverage-r:
                     sensor_to_be_removed.append(sensor)
         else:
             for sensor in list(self.sensors.nodes)[1:]:
                 L = list(map(lambda target:len(self.target_coverage[target]),self.sensor_coverage[sensor]))
-                if min(L) > min_coverage:
-                    sensor_to_be_removed = [sensor]
-                    min_coverage = min(L)
-                elif min(L) == min_coverage:
-                    sensor_to_be_removed.append(sensor)
+                if len(L) > 0:
+                    if min(L) > min_coverage:
+                        sensor_to_be_removed = [sensor]
+                        min_coverage = min(L)
+                    elif min(L) == min_coverage:
+                        sensor_to_be_removed.append(sensor)
                 
         return min_coverage, sensor_to_be_removed
 
@@ -207,11 +208,11 @@ class Solution(Instance):
                 self.remove_sensor(sensor)
         
             if not self.is_switchable(switch):
-                print("fail")
+                #print("fail")
                 for j in to_test:
                     self.add_sensor(j)
             else:
-                print("score: ",self.score())
+                #print("score: ",self.score())
                 return 1, max_coverage
             
         return 0, max_coverage
@@ -230,9 +231,9 @@ class Solution(Instance):
         return False
     
     def add_sensor_close_to_target(self, target_index):
-        if target_index in self.sensors.nodes:
+        if target_index in self.sensors.nodes or target_index == 0:
             index_neighboors = np.array(sorted(self._data.items(),
-                                        key=lambda x: utils.distance(x[1][0], self._data[target_index][1])), dtype=object)
+                                        key=lambda x: utils.distance(x[1], self._data[target_index])), dtype=object)
             i = 0
             while index_neighboors[i][0] in self.sensors.nodes:
                 i += 1
@@ -241,8 +242,15 @@ class Solution(Instance):
             self.add_sensor(target_index)
     
     def voisinage2(self, nb_removed = 4):
-        to_be_removed = np.random.Generator.choice(list(self.sensors.nodes), 
-                        size=nb_removed, replace=False, shuffle=False)
+        random_generator = np.random.default_rng()
+        if 0 in self.sensors.nodes:
+            list_choices = list(self.sensors.nodes)
+            list_choices.remove(0)
+            to_be_removed = random_generator.choice(list_choices, 
+                        size=nb_removed, replace=False, shuffle=True)
+        else:
+            to_be_removed = random_generator.choice(list(self.sensors.nodes), 
+                            size=nb_removed, replace=False, shuffle=True)
         for sensor in to_be_removed:
             self.remove_sensor(sensor)
         
@@ -255,24 +263,28 @@ class Solution(Instance):
             is_covered, index_not_covered = self.is_covered()
             
         while not(self.is_connected()):
-            connected_components = nx.connected_components(self.sensors)
-            component_with_00 = nx.node_connected_component(self.sensors, self.target_coverage[0])
+            connected_components = [list(self.sensors.subgraph(component).nodes) for component in nx.connected_components(self.sensors)]
+            #print("{} connected components".format(len(list(connected_components))))
+            while len(self.target_coverage[0]) == 0:
+                self.add_sensor_close_to_target(0)
+            component_with_00 = list(nx.node_connected_component(self.sensors, self.target_coverage[0][0]))
 
             # Choose the closest component X to the component Y containing (0,0)
-            random_element_connected_to_00 = np.choice(component_with_00, size=1)
+            random_element_connected_to_00 = random_generator.choice(component_with_00)
             smallest_distance_to_random_element = np.inf
             closest_component = None
             for component in connected_components:
                 if random_element_connected_to_00 in component:
-                    pass
+                    continue
                 for node in component:
                     distance_to_random_element = self._distance_ind(node, random_element_connected_to_00)
                     if distance_to_random_element < smallest_distance_to_random_element:
                         smallest_distance_to_random_element = distance_to_random_element
                         closest_component = component
+            closest_component = list(closest_component)
             
             # Choose the closest node y0 to a random x of X, in the component (0,0)
-            random_element_component = np.choice(closest_component, size=1)
+            random_element_component = random_generator.choice(closest_component)
             smallest_distance_to_component = np.inf
             closest_node = -1
             for node in component_with_00:
@@ -290,9 +302,13 @@ class Solution(Instance):
                     smallest_distance_to_closest_node = distance_to_closest_node
                     closest_node_in_component = node
             
-            barycenter = utils.compute_barycenter([self._data[closest_node], self._data[closest_node_in_component]])
-            closest_target = utils.find_closest(barycenter, self._data.items())
-            self.add_sensor_close_to_target(closest_target)
+            barycenter = utils.compute_barycenter([ [closest_node, self._data[closest_node]],
+                                                    [closest_node_in_component, self._data[closest_node_in_component]] ])
+            closest_target = utils.find_closest(barycenter, list(self._data.items()))
+            self.add_sensor_close_to_target(closest_target[0])
+
+        if not(self.is_admissible()):
+            raise ValueError
 
         return nb_removed - nb_added
           
@@ -330,7 +346,8 @@ class Solution(Instance):
 
 Solution1 = Solution(NAME)
 t = time()
-for i in range(1,225):
+number_of_targets = int(NAME[8:].partition('_')[0])
+for i in range(1,number_of_targets):
     Solution1.add_sensor(i)
 t1 = time()
 print(t1-t)
@@ -343,13 +360,14 @@ print(Solution1.score())
 print(t3-t2)
 #quartering(Solution1)
 #Solution1.optimize_voisi()
-#t4 = time()
-#print(t4-t3)
-#print(Solution1.score())
-vns.start_vns(Solution1)
+t4 = time()
+print(t4-t3)
+print(Solution1.score())
+Solution2, scores = vns.start_vns(Solution1)
 t5 = time()
 print("VNS time : ",t5-t4, end="")
 print(Solution1.score())
+print("Score : ", Solution2.score())
 #Solution1.plot_sensors()
 #Solution1.optimize_locally()
 
