@@ -191,8 +191,7 @@ class Solution(Instance):
             for i in range(1,self._n):
                 if len(self.target_coverage[i]) == max_coverage - q:
                     i_max.append(i)
-        return i_max, max_coverage            
-        
+        return i_max, max_coverage                
         
     def voisinage1(self, max_coverage=0, q=0, nb_removed=1):
         """
@@ -324,8 +323,7 @@ class Solution(Instance):
         
         logging.debug("Removed {} sensors".format(nb_removed - nb_added))
         return nb_removed - nb_added
-          
-            
+                   
     def optimize_voisi(self):
         
         voisi = True
@@ -335,8 +333,7 @@ class Solution(Instance):
             voisi, m = Solution1.voisinage1(m,1)
         while voisi:
             voisi, m = Solution1.voisinage1(m,1)
-         
-         
+               
     def plot_sensors(self):
 
         _, ax = plt.subplots()
