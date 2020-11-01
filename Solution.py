@@ -31,7 +31,7 @@ class Solution(Instance):
     @property
     def score(self):
 
-        return len(self.sensors.nodes)-1
+        return len(self.sensors.nodes) - 1
 
     def copy(self):
 
@@ -74,7 +74,7 @@ class Solution(Instance):
         x, inf_x, sup_x = self._reduce_sensors(i)
         self.sensors_sorted.insert(x, [i, self._data[i]])
 
-        for j in range(max(inf_x-1, 0), min(sup_x+1, len(self.sensors_sorted))):
+        for j in range(max(inf_x - 1, 0), min(sup_x + 1, len(self.sensors_sorted))):
             x_j = self.sensors_sorted[j][0]
             if self._distance_ind(i, x_j) <= self._rcom and i != x_j:
                 self.sensors.add_edge(i, x_j)
@@ -84,8 +84,8 @@ class Solution(Instance):
         #         self.sensors.add_edge(i,j)
 
         inf_x, sup_x = self._reduce_target(i)
-        self.counter += sup_x-inf_x
-        for j in range(max(inf_x-1, 0), min(sup_x+1, self._n)):
+        self.counter += sup_x - inf_x
+        for j in range(max(inf_x - 1, 0), min(sup_x + 1, self._n)):
             x_j = self._data_x[j][0]
             if self._distance_ind(i, x_j) <= self._rcapt:
                 self.target_coverage[x_j].append(i)
@@ -100,7 +100,7 @@ class Solution(Instance):
         del self.sensor_coverage[i]
 
         inf_x, sup_x = self._reduce_target(i)
-        for j in range(max(inf_x-1, 0), min(sup_x+1, self._n)):
+        for j in range(max(inf_x - 1, 0), min(sup_x + 1, self._n)):
             x_j = self._data_x[j][0]
             if i in self.target_coverage[x_j]:
                 self.target_coverage[x_j].remove(i)
@@ -132,8 +132,9 @@ class Solution(Instance):
             for sensor in list(self.sensors.nodes)[1:]:
                 L1 = list(map(lambda target: len(
                     self.target_coverage[target]), self.sensor_coverage[sensor]))
-                # L2 = list(map(lambda target:degrees[target],self.target_coverage[sensor]))
-                if min(L1) == min_coverage-r:
+                # L2 = list(map(lambda target: degrees[target],
+                #               self.target_coverage[sensor]))
+                if min(L1) == min_coverage - r:
                     sensor_to_be_removed_1.append(sensor)
                 # if min(L2) == min_coverage-r:
                 #     sensor_to_be_removed_2.append(sensor)
@@ -141,7 +142,8 @@ class Solution(Instance):
             for sensor in list(self.sensors.nodes)[1:]:
                 L1 = list(map(lambda target: len(
                     self.target_coverage[target]), self.sensor_coverage[sensor]))
-                # L2 = list(map(lambda target:degrees[target],self.target_coverage[sensor]))
+                # L2 = list(map(lambda target: degrees[target],
+                #               self.target_coverage[sensor]))
                 if min(L1) > min_coverage:
                     sensor_to_be_removed_1 = [sensor]
                     min_coverage = min(L1)
@@ -233,13 +235,13 @@ class Solution(Instance):
                 "Removing sensors {}\tTarget node is {}".format(to_test, i_test))
             if i_test in self.sensors.nodes:
                 switch = list(combinations(self.sensor_coverage[i_test], len(
-                    self.target_coverage[i_test])-nb_removed))
+                    self.target_coverage[i_test]) - nb_removed))
             else:
                 self.add_sensor(i_test)
                 targets = self.sensor_coverage[i_test][:]
                 self.remove_sensor(i_test)
                 switch = list(combinations(targets, len(
-                    self.target_coverage[i_test])-nb_removed))
+                    self.target_coverage[i_test]) - nb_removed))
             # if len(switch) > 5000:
             #     switch = sample(switch,5000)
             for sensor in to_test:
@@ -251,8 +253,9 @@ class Solution(Instance):
                 for sensor in to_test:
                     self.add_sensor(sensor)
             else:
-                logging.debug("Neighborhood 1 : Switch sucess around {}\tNew score {}".format(
-                    i_test, self.score()))
+                logging.debug("Neighborhood 1 : Switch sucess around {}"
+                              "\tNew score {}".format(
+                                  i_test, self.score()))
                 return 1, max_coverage
 
         return 0, max_coverage
@@ -260,9 +263,13 @@ class Solution(Instance):
     # Second neighborhood structure
     def add_sensor_close_to_target(self, target_index):
         if target_index in self.sensors.nodes or target_index == 0:
-            index_neighboors = np.array(sorted(self._data.items(),
-                                               key=lambda x: utils.distance(x[1],
-                                                                            self._data[target_index])), dtype=object)
+            index_neighboors = np.array(
+                sorted(
+                    self._data.items(),
+                    key=lambda x: utils.distance(
+                        x[1],
+                        self._data[target_index])),
+                dtype=object)
             i = 0
             while index_neighboors[i][0] in self.sensors.nodes:
                 i += 1
@@ -281,10 +288,14 @@ class Solution(Instance):
             list_choices = list(self.sensors.nodes)
             list_choices.remove(0)
             to_be_removed = random_generator.choice(list_choices,
-                                                    size=nb_removed, replace=False, shuffle=True)
+                                                    size=nb_removed,
+                                                    replace=False,
+                                                    shuffle=True)
         else:
             to_be_removed = random_generator.choice(list(self.sensors.nodes),
-                                                    size=nb_removed, replace=False, shuffle=True)
+                                                    size=nb_removed,
+                                                    replace=False,
+                                                    shuffle=True)
         logging.debug(
             "Neighborhood 2 : Removing {} sensors".format(to_be_removed))
 
@@ -352,8 +363,11 @@ class Solution(Instance):
                     smallest_distance_to_closest_node = distance_to_closest_node
                     closest_node_in_component = node
 
-            barycenter = utils.compute_barycenter([[closest_node, self._data[closest_node]],
-                                                   [closest_node_in_component, self._data[closest_node_in_component]]])
+            barycenter = utils.compute_barycenter(
+                [[closest_node,
+                  self._data[closest_node]],
+                 [closest_node_in_component,
+                  self._data[closest_node_in_component]]])
             closest_target = utils.find_closest(
                 barycenter, list(self._data.items()))
             self.add_sensor_close_to_target(closest_target[0])
