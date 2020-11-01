@@ -1,6 +1,5 @@
 import utils
 
-import Solution
 
 def quartering(solution, size=20):
     x_minimum = solution._data_x[0][1][0]
@@ -17,9 +16,10 @@ def quartering(solution, size=20):
     quarters = [[[] for j in range(width)] for i in range(length)]
 
     for target in solution._data.items():
-        quarters[int((target[1][0] - x_minimum) / length_quarter)]\
-            [int((target[1][1] - y_minimum) / width_quarter)].append(target)
-    
+        quarters[int((target[1][0] - x_minimum)
+                     / length_quarter)][int((target[1][1] - y_minimum)
+                                            / width_quarter)].append(target)
+
     for line in quarters:
         for quarter in line:
             pass

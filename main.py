@@ -1,18 +1,18 @@
+import vns
+import Solution
 from time import time
+
+from configuration import NAME
+from quartering import quartering
 
 import logging
 logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.INFO)
-
-import vns
-import Solution
-from configuration import PATH, NAME
-from quartering import quartering
 
 
 Solution1 = Solution.Solution(NAME)
 t = time()
 number_of_targets = int(NAME[8:].partition('_')[0])
-for i in range(1,number_of_targets):
+for i in range(1, number_of_targets):
     Solution1.add_sensor(i)
 t1 = time()
 print(t1-t)
@@ -23,7 +23,7 @@ Solution1.optimize_locally()
 t3 = time()
 print(Solution1.score())
 print(t3-t2)
-#quartering(Solution1)
+# quartering(Solution1)
 # Solution1.optimize_voisi()
 # t4 = time()
 # print(t4-t3)
@@ -32,10 +32,9 @@ print(t3-t2)
 # t5 = time()
 # print("VNS time : ",t5-t4, end="")
 # print(Solution1.score())
-#Solution1.plot_sensors()
-#Solution1.optimize_locally()
+# Solution1.plot_sensors()
+# Solution1.optimize_locally()
 
-# 
 # compteur = 0
 # score = 0
 # score_min = 1500
