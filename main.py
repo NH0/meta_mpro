@@ -21,17 +21,17 @@ t2 = time()
 print(t2 - t1)
 Solution1.optimize_locally()
 t3 = time()
-print(Solution1.score())
+print(Solution1.score)
 print(t3 - t2)
 # quartering(Solution1)
 # Solution1.optimize_voisi()
-# t4 = time()
+t4 = time()
 # print(t4-t3)
-# print(Solution1.score())
-# vns.start_vns(Solution1)
-# t5 = time()
-# print("VNS time : ",t5-t4, end="")
-# print(Solution1.score())
+# print(Solution1.score)
+vns.start_vns(Solution1)
+t5 = time()
+print("VNS time : ", t5 - t4, end="")
+print(Solution1.score)
 # Solution1.plot_sensors()
 # Solution1.optimize_locally()
 
@@ -46,8 +46,8 @@ print(t3 - t2)
 #     if Solution1.is_admissible():
 #         compteur += 1
 #         Solution1.optimize_locally()
-#         score += Solution1.score()
-#         if Solution1.score() < score_min:
-#             score_min = Solution1.score()
-#         print(Solution1.score())
+#         score += Solution1.score
+#         if Solution1.score < score_min:
+#             score_min = Solution1.score
+#         print(Solution1.score)
 # print(score/compteur)

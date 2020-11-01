@@ -255,7 +255,7 @@ class Solution(Instance):
             else:
                 logging.debug("Neighborhood 1 : Switch sucess around {}"
                               "\tNew score {}".format(
-                                  i_test, self.score()))
+                                  i_test, self.score))
                 return 1, max_coverage
 
         return 0, max_coverage
@@ -375,7 +375,7 @@ class Solution(Instance):
 
         return nb_added
 
-    def voisinage2(self, nb_removed=4):
+    def neighborhood_2(self, nb_removed=4):
         self.remove_random_sensors(nb_removed)
 
         nb_added = 0
@@ -397,17 +397,17 @@ class Solution(Instance):
             voisi, _ = self.voisinage1()
 
     # Third neighborhood structure
-    def Neighborhood_3(self, T=20):
+    def neighborhood_3(self, nb_added=20):
 
-        score = self.score()
+        score = self.score
         addable = [i for i in range(self._n) if i not in self.sensors.nodes]
-        to_add = sample(addable, T)
+        to_add = sample(addable, nb_added)
         for sensor in to_add:
             self.add_sensor(sensor)
         removed = self.optimize_locally()
-        if self.score() < score:
-            score = self.score()
-            print("score : ", score)
+        if self.score < score:
+            score = self.score
+            logging.debug("Neighborhood 3 : score ", score)
             return True
         else:
             for sensor in removed:
@@ -424,7 +424,7 @@ class Solution(Instance):
         # Solution_save = self.copy()
         while T > 0 and c < cmax:
 
-            self.Neighborhood_3()
+            self.neighborhood_3()
             c += 1
 
     # Display solution
