@@ -19,6 +19,7 @@ class Solution(Instance):
 
     def __init__(self, name, ind_radius=0, ind_k=0, path=PATH):
         Instance.__init__(self, name, ind_radius, ind_k, path)
+        self.name = name
         self.sensors = nx.Graph()
         self.sensors.add_node(0)
         self.sensors_sorted = [[0,[0., 0.]]]
@@ -33,7 +34,7 @@ class Solution(Instance):
     
     def copy(self):
         
-        Solution_cop = Solution(NAME)
+        Solution_cop = Solution(self.name)
         Solution_cop.sensors = self.sensors.copy()
         Solution_cop.sensors_sorted = self.sensors_sorted[:]
         Solution_cop.target_coverage = self.target_coverage.copy()
@@ -334,11 +335,11 @@ class Solution(Instance):
         return nb_added
    
     def voisinage2(self, nb_removed = 4):
-        utils.remove_random_sensors(self, nb_removed)
+        self.remove_random_sensors(nb_removed)
         
         nb_added = 0
-        nb_added += utils.fix_broken_coverrage(self)
-        nb_added += utils.fix_broken_connection(self)
+        nb_added += self.fix_broken_coverrage()
+        nb_added += self.fix_broken_connection()
 
         if not(self.is_admissible()):
             raise RuntimeError
