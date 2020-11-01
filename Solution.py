@@ -20,11 +20,10 @@ class Solution(Instance):
 
     def __init__(self, name, ind_radius=0, ind_k=0, path=PATH):
         Instance.__init__(self, name, ind_radius, ind_k, path)
-        self.name = name
+        self._name = name
         self.sensors = nx.Graph()
         self.sensors.add_node(0)
         self.sensors_sorted = [[0, [0., 0.]]]
-        self.counter = 0
         self.target_coverage = defaultdict(list)
         self.sensor_coverage = defaultdict(list)
 
@@ -35,7 +34,7 @@ class Solution(Instance):
 
     def copy(self):
 
-        Solution_cop = Solution(self.name)
+        Solution_cop = Solution(self._name)
         Solution_cop.sensors = self.sensors.copy()
         Solution_cop.sensors_sorted = self.sensors_sorted[:]
         Solution_cop.target_coverage = self.target_coverage.copy()
@@ -43,7 +42,7 @@ class Solution(Instance):
 
         return Solution_cop
 
-    # Add of remove sensors
+    # Add or remove sensors
     def _reduce_target(self, i):
 
         inf_x = bisect(self._data_x[:, 1], list(
@@ -106,11 +105,11 @@ class Solution(Instance):
                 self.target_coverage[x_j].remove(i)
 
     # Check admissibility
-    def is_connected(self):
+    def _is_connected(self):
 
         return nx.is_connected(self.sensors)
 
-    def is_covered(self):
+    def _is_covered(self):
         for i in range(1, self._n):
             if len(self.target_coverage[i]) < self._k:
 
@@ -120,10 +119,10 @@ class Solution(Instance):
 
     def is_admissible(self):
 
-        return self.is_connected() and self.is_covered()[0]
+        return self._is_connected() and self._is_covered()[0]
 
     # Optimize locally the solution
-    def to_be_removed(self, min_coverage=[0, 0], r=0):
+    def _to_be_removed(self, min_coverage=0, r=0):
 
         # sensor_to_be_removed_1, sensor_to_be_removed_2 = [], []
         sensor_to_be_removed_1 = []
@@ -161,7 +160,7 @@ class Solution(Instance):
 
         return min_coverage, sensor_to_be_removed_1
 
-    def is_removable(self, to_remove):
+    def _is_removable(self, to_remove):
 
         for i in to_remove:
             self.remove_sensor(i)
@@ -171,13 +170,13 @@ class Solution(Instance):
                 self.add_sensor(i)
         return False, 0
 
-    def is_removable_through_r(self, r_max):
+    def _is_removable_through_r(self, r_max):
 
         min_coverage = 0
         # min_coverage = [0,0]
         for r in range(r_max):
-            min_coverage, to_remove = self.to_be_removed(min_coverage, r)
-            admissible, removed = self.is_removable(to_remove)
+            min_coverage, to_remove = self._to_be_removed(min_coverage, r)
+            admissible, removed = self._is_removable(to_remove)
             if admissible:
                 return True, removed
         return False, 0
@@ -187,14 +186,14 @@ class Solution(Instance):
         admissible = True
         L_removed = []
         while admissible:
-            admissible, removed = self.is_removable_through_r(r_max)
+            admissible, removed = self._is_removable_through_r(r_max)
             if admissible:
                 L_removed.append(removed)
 
         return L_removed
 
     # First neighborhood structure
-    def find_max_coverage(self, max_coverage, q):
+    def _find_max_coverage(self, max_coverage, q):
         i_max = []
         if max_coverage == 0:
             for i in range(1, self._n):
@@ -209,7 +208,7 @@ class Solution(Instance):
                     i_max.append(i)
         return i_max, max_coverage
 
-    def is_switchable(self, switch):
+    def _is_switchable(self, switch):
 
         for i in range(len(switch)):
             try_switch = switch[i]
@@ -228,7 +227,7 @@ class Solution(Instance):
         nb_removed : on retire p et on ajoute p-i
         """
 
-        i_max, max_coverage = self.find_max_coverage(max_coverage, q)
+        i_max, max_coverage = self._find_max_coverage(max_coverage, q)
         for i_test in i_max:
             to_test = self.target_coverage[i_test][:]
             logging.debug(
@@ -247,7 +246,7 @@ class Solution(Instance):
             for sensor in to_test:
                 self.remove_sensor(sensor)
 
-            if not self.is_switchable(switch):
+            if not self._is_switchable(switch):
                 logging.debug(
                     "Neighborhood 1 : Switch fail around {}".format(i_test))
                 for sensor in to_test:
@@ -304,11 +303,11 @@ class Solution(Instance):
 
     def fix_broken_coverrage(self):
         nb_added = 0
-        is_covered, index_not_covered = self.is_covered()
+        is_covered, index_not_covered = self._is_covered()
         while not(is_covered):
             self.add_sensor_close_to_target(target_index=index_not_covered)
             nb_added += 1
-            is_covered, index_not_covered = self.is_covered()
+            is_covered, index_not_covered = self._is_covered()
 
         return nb_added
 
