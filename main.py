@@ -2,7 +2,7 @@ import numpy as np
 from collections import defaultdict
 from bisect import bisect
 from time import time
-from random import sample, shuffle
+from random import sample, shuffle, random
 import networkx as nx
 import matplotlib.pyplot as plt
 import matplotlib.patches as ptc
@@ -54,7 +54,17 @@ class Solution(Instance):
         self.counter = 0
         self.target_coverage = defaultdict(list)
         self.sensor_coverage = defaultdict(list)
-
+    
+    def copy(self):
+        
+        Solution_cop = Solution(NAME)
+        Solution_cop.sensors = self.sensors.copy()
+        Solution_cop.sensors_sorted = self.sensors_sorted[:]
+        Solution_cop.target_coverage = self.target_coverage.copy()
+        Solution_cop.sensor_coverage = self.sensor_coverage.copy()
+        
+        return Solution_cop
+    
     def _reduce_target(self,i):
         
         inf_x = bisect(self._data_x[:,1],list(np.array(self._data[i]) - np.array([self._rcapt,0])))
@@ -105,37 +115,39 @@ class Solution(Instance):
             if i in self.target_coverage[x_j]:
                 self.target_coverage[x_j].remove(i)
                 
-    def to_be_removed(self,min_coverage=[0,0],r=0):
+    def to_be_removed(self,min_coverage=[0,0], r=0):
         
-        sensor_to_be_removed_1, sensor_to_be_removed_2 = [], []
+        # sensor_to_be_removed_1, sensor_to_be_removed_2 = [], []
+        sensor_to_be_removed_1 = []
         degrees = self.sensors.degree()
-        if min_coverage != [0,0]:
+        if min_coverage > 0:
             for sensor in list(self.sensors.nodes)[1:]:
                 L1 = list(map(lambda target:len(self.target_coverage[target]),self.sensor_coverage[sensor]))
-                L2 = list(map(lambda target:degrees[target],self.target_coverage[sensor]))
-                if min(L1) == min_coverage[0]-r:
+                # L2 = list(map(lambda target:degrees[target],self.target_coverage[sensor]))
+                if min(L1) == min_coverage-r:
                     sensor_to_be_removed_1.append(sensor)
-                if min(L2) == min_coverage[1]-r:
-                    sensor_to_be_removed_2.append(sensor)
+                # if min(L2) == min_coverage-r:
+                #     sensor_to_be_removed_2.append(sensor)
         else:
             for sensor in list(self.sensors.nodes)[1:]:
                 L1 = list(map(lambda target:len(self.target_coverage[target]),self.sensor_coverage[sensor]))
-                L2 = list(map(lambda target:degrees[target],self.target_coverage[sensor]))
-                if min(L1) > min_coverage[0]:
+                # L2 = list(map(lambda target:degrees[target],self.target_coverage[sensor]))
+                if min(L1) > min_coverage:
                     sensor_to_be_removed_1 = [sensor]
-                    min_coverage[0] = min(L1)
-                elif min(L1) == min_coverage[0]:
+                    min_coverage = min(L1)
+                elif min(L1) == min_coverage:
                     sensor_to_be_removed_1.append(sensor)
-                if min(L2) > min_coverage[1]:
-                    sensor_to_be_removed_2 = [sensor]
-                    min_coverage[1] = min(L2)
-                elif min(L2) == min_coverage[1]:
-                    sensor_to_be_removed_2.append(sensor)
+                # if min(L2) > min_coverage:
+                #     sensor_to_be_removed_2 = [sensor]
+                #     min_coverage = min(L2)
+                # elif min(L2) == min_coverage:
+                #     sensor_to_be_removed_2.append(sensor)
         
-        sensor_to_be_removed = sensor_to_be_removed_1 + sensor_to_be_removed_2
-        shuffle(sensor_to_be_removed)
+        # sensor_to_be_removed = sensor_to_be_removed_1 + sensor_to_be_removed_2
+        # shuffle(sensor_to_be_removed)
+        shuffle(sensor_to_be_removed_1)
         
-        return min_coverage, sensor_to_be_removed
+        return min_coverage, sensor_to_be_removed_1
         
             
     def is_connected(self):
@@ -161,27 +173,34 @@ class Solution(Instance):
     def optimize_locally(self, r_max=2):
         
         admissible = True
+        L_removed = []
         while admissible:
-            admissible = self.is_removable_through_r(r_max)
+            admissible, removed = self.is_removable_through_r(r_max)
+            if admissible:
+                L_removed.append(removed)
+        
+        return L_removed
     
     def is_removable_through_r(self, r_max):
         
-        min_coverage = [0,0]
+        min_coverage = 0
+        # min_coverage = [0,0]
         for r in range(r_max):
             min_coverage, to_remove = self.to_be_removed(min_coverage,r)
-            if self.is_removable(to_remove):
-                return True
-        return False
+            admissible, removed = self.is_removable(to_remove)
+            if admissible:
+                return True, removed
+        return False, 0
                 
     def is_removable(self, to_remove):
         
         for i in to_remove:
             self.remove_sensor(i)
             if self.is_admissible():
-                return True
+                return True,i
             else:
                 self.add_sensor(i)
-        return False
+        return False,0
     
     def find_max_coverage(self, max_coverage, q):
         i_max = []
@@ -317,6 +336,41 @@ class Solution(Instance):
         while voisi:
             voisi, m = Solution1.voisinage1()
          
+    
+    def recuit(self):
+        
+        T = 50
+        p0 = 0.8
+        c = 0
+        self.Solution_save = self.copy()
+        score = self.score()
+        while T > 0 and c<500:
+            
+            
+            addable = range(self._n)
+            addable = [i for i in addable if i not in self.sensors.nodes]
+            to_add = sample(addable,T)
+            for sensor in to_add:
+                self.add_sensor(sensor)
+            removed = self.optimize_locally()
+            if self.score() < score:
+                score = self.score()
+                # self.Solution_save = self.copy()
+                print("socre : ",score)
+            else:
+                # if random() > p0:
+                for sensor in removed:
+                    self.add_sensor(sensor)
+                for sensor in to_add:
+                    self.remove_sensor(sensor)
+            if c%10 == 0:
+                print(c)
+                # print("T : ",T)
+                # T -=1
+                # p0 *= 0.97
+            c += 1
+                
+            
          
     def plot_sensors(self):
 
@@ -340,7 +394,7 @@ class Solution(Instance):
 
 Solution1 = Solution(NAME)
 t = time()
-for i in range(1,1500):
+for i in range(1, 1500):
     Solution1.add_sensor(i)
 t1 = time()
 print(t1-t)
@@ -352,10 +406,10 @@ t3 = time()
 print(Solution1.score())
 print(t3-t2)
 #quartering(Solution1)
-Solution1.optimize_voisi()
-t4 = time()
-print(t4-t3)
-print(Solution1.score())
+# Solution1.optimize_voisi()
+# t4 = time()
+# print(t4-t3)
+# print(Solution1.score())
 # vns.start_vns(Solution1)
 # t5 = time()
 # print("VNS time : ",t5-t4, end="")
