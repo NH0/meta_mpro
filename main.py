@@ -1,5 +1,6 @@
 import vns
 import Solution
+import Instance
 from time import time
 
 from configuration import NAME
@@ -7,7 +8,6 @@ from quartering import quartering
 
 import logging
 logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.INFO)
-
 
 Solution1 = Solution.Solution(NAME)
 t = time()
@@ -26,13 +26,16 @@ print(t3 - t2)
 # quartering(Solution1)
 # Solution1.optimize_voisi()
 t4 = time()
-# print(t4-t3)
-# print(Solution1.score)
-vns.start_vns(Solution1)
-t5 = time()
-print("VNS time : ", t5 - t4, end="")
+print(t4 - t3)
 print(Solution1.score)
-# Solution1.plot_sensors()
+Solution2, scores = vns.start_vns(Solution1)
+t5 = time()
+print("VNS time : ", t5 - t4)
+print("Initial score ", Solution1.score)
+print("VNS score ", Solution2.score)
+print("Solution sensors ", list(Solution2.sensors.nodes))
+Solution1.plot_sensors()
+Solution2.plot_sensors()
 # Solution1.optimize_locally()
 
 # compteur = 0
