@@ -356,37 +356,37 @@ class Solution(Instance):
             voisi, _ = self.voisinage1()
 
     ### Simulated annealing to improve the solution
-    def recuit(self):
+    def Neighborhood_3(self, T=20):
+    
+        score = self.score()
+        addable = [i for i in range(self._n) if i not in self.sensors.nodes]
+        to_add = sample(addable,T)
+        for sensor in to_add:
+            self.add_sensor(sensor)
+        removed = self.optimize_locally()
+        if self.score() < score:
+            score = self.score()
+            print("score : ",score)
+            return True
+        else:
+            for sensor in removed:
+                self.add_sensor(sensor)
+            for sensor in to_add:
+                self.remove_sensor(sensor)
+            return False
+        
+    def almost_annealing(self):
         
         T = 20
-        p0 = 0.8
-        c = 0
-        self.Solution_save = self.copy()
-        score = self.score()
+        cmax = 500
+        # Solution_save = self.copy()
         while T > 0 and c<500:
             
-            addable = range(self._n)
-            addable = [i for i in addable if i not in self.sensors.nodes]
-            to_add = sample(addable,T)
-            for sensor in to_add:
-                self.add_sensor(sensor)
-            removed = self.optimize_locally()
-            if self.score() < score:
-                score = self.score()
-                # self.Solution_save = self.copy()
-                print("socre : ",score)
-            else:
-                # if random() > p0:
-                for sensor in removed:
-                    self.add_sensor(sensor)
-                for sensor in to_add:
-                    self.remove_sensor(sensor)
-            if c%10 == 0:
-                print(c)
-                # print("T : ",T)
-                # T -=1
-                # p0 *= 0.97
+            self.Neighborhood_3()
             c += 1
+        
+        
+        
 
     ### Display solution
     def plot_sensors(self):
