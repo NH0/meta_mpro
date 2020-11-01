@@ -8,7 +8,6 @@ from random import sample, shuffle
 from itertools import combinations
 
 import logging
-logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.INFO)
 import inspect
 
 import utils
@@ -27,6 +26,12 @@ class Solution(Instance):
         self.target_coverage = defaultdict(list)
         self.sensor_coverage = defaultdict(list)
 
+    @property 
+    def score(self):
+        
+        return len(self.sensors.nodes)-1
+    
+    ### Add of remove sensors
     def _reduce_target(self,i):
         
         inf_x = bisect(self._data_x[:,1],list(np.array(self._data[i]) - np.array([self._rcapt,0])))
@@ -79,7 +84,25 @@ class Solution(Instance):
             x_j = self._data_x[j][0]
             if i in self.target_coverage[x_j]:
                 self.target_coverage[x_j].remove(i)
+        
+    ### Check admissibility
+    def is_connected(self):
+
+        return nx.is_connected(self.sensors)
+
+    def is_covered(self):
+        for i in range(1,self._n):
+            if len(self.target_coverage[i]) < self._k:
+
+                return False, i
+        
+        return True, -1
                 
+    def is_admissible(self):
+        
+        return self.is_connected() and self.is_covered()[0]
+        
+    ### Optimize locally the solution
     def to_be_removed(self,min_coverage=[0,0],r=0):
         
         sensor_to_be_removed_1, sensor_to_be_removed_2 = [], []
@@ -111,43 +134,7 @@ class Solution(Instance):
         shuffle(sensor_to_be_removed)
         
         return min_coverage, sensor_to_be_removed
-        
-            
-    def is_connected(self):
-
-        return nx.is_connected(self.sensors)
-
-    def is_covered(self):
-        for i in range(1,self._n):
-            if len(self.target_coverage[i]) < self._k:
-
-                return False, i
-        
-        return True, -1
-                
-    def is_admissible(self):
-        
-        return self.is_connected() and self.is_covered()[0]
-        
-    def score(self):
-        
-        return len(self.sensors.nodes)-1
-        
-    def optimize_locally(self, r_max=2):
-        
-        admissible = True
-        while admissible:
-            admissible = self.is_removable_through_r(r_max)
-    
-    def is_removable_through_r(self, r_max):
-        
-        min_coverage = [0,0]
-        for r in range(r_max):
-            min_coverage, to_remove = self.to_be_removed(min_coverage,r)
-            if self.is_removable(to_remove):
-                return True
-        return False
-                
+      
     def is_removable(self, to_remove):
         
         for i in to_remove:
@@ -157,7 +144,23 @@ class Solution(Instance):
             else:
                 self.add_sensor(i)
         return False
+
+    def is_removable_through_r(self, r_max):
     
+        min_coverage = [0,0]
+        for r in range(r_max):
+            min_coverage, to_remove = self.to_be_removed(min_coverage,r)
+            if self.is_removable(to_remove):
+                return True
+        return False
+    
+    def optimize_locally(self, r_max=2):
+        
+        admissible = True
+        while admissible:
+            admissible = self.is_removable_through_r(r_max)
+    
+    ### First neighborhood structure
     def find_max_coverage(self, max_coverage, q):
         i_max = []
         if max_coverage == 0:
@@ -173,6 +176,19 @@ class Solution(Instance):
                     i_max.append(i)
         return i_max, max_coverage                
         
+    def is_switchable(self,switch):
+        
+        for i in range(len(switch)):
+            try_switch = switch[i]
+            for sensor in try_switch:
+                self.add_sensor(sensor)
+            if not self.is_admissible():
+                for sensor in try_switch:
+                    self.remove_sensor(sensor)
+            else:
+                return True
+        return False
+
     def voisinage1(self, max_coverage=0, q=0, nb_removed=1):
         """
         q : le q ième plus grand nombre de capteurs
@@ -205,19 +221,7 @@ class Solution(Instance):
             
         return 0, max_coverage
     
-    def is_switchable(self,switch):
-        
-        for i in range(len(switch)):
-            try_switch = switch[i]
-            for sensor in try_switch:
-                self.add_sensor(sensor)
-            if not self.is_admissible():
-                for sensor in try_switch:
-                    self.remove_sensor(sensor)
-            else:
-                return True
-        return False
-    
+    ### Second neighborhood structure
     def add_sensor_close_to_target(self, target_index):
         if target_index in self.sensors.nodes or target_index == 0:
             index_neighboors = np.array(sorted(self._data.items(),
@@ -230,9 +234,10 @@ class Solution(Instance):
         else:
             self.add_sensor(target_index)
             logging.debug("close to target : added sensor {}".format(target_index))
-    
-    def voisinage2(self, nb_removed = 4):
+
+    def remove_random_sensors(self, nb_removed):
         random_generator = np.random.default_rng()
+
         if 0 in self.sensors.nodes:
             list_choices = list(self.sensors.nodes)
             list_choices.remove(0)
@@ -242,17 +247,23 @@ class Solution(Instance):
             to_be_removed = random_generator.choice(list(self.sensors.nodes), 
                             size=nb_removed, replace=False, shuffle=True)
         logging.debug("Neighborhood 2 : Removing {} sensors".format(to_be_removed))
+        
         for sensor in to_be_removed:
             self.remove_sensor(sensor)
-        
-        nb_added = 0
 
+    def fix_broken_coverrage(self):
+        nb_added = 0
         is_covered, index_not_covered = self.is_covered()
         while not(is_covered):
             self.add_sensor_close_to_target(target_index = index_not_covered)
             nb_added += 1
             is_covered, index_not_covered = self.is_covered()
-            
+
+        return nb_added
+
+    def fix_broken_connection(self):
+        nb_added = 0
+        random_generator = np.random.default_rng()
         while not(self.is_connected()):
             connected_components = [list(self.sensors.subgraph(component).nodes) for component in nx.connected_components(self.sensors)]
             logging.debug("Neighborhood 2 : {} connected components".format(len(list(connected_components))))
@@ -297,19 +308,32 @@ class Solution(Instance):
                                                     [closest_node_in_component, self._data[closest_node_in_component]] ])
             closest_target = utils.find_closest(barycenter, list(self._data.items()))
             self.add_sensor_close_to_target(closest_target[0])
+            nb_added += 1
+        
+        return nb_added
+   
+    def voisinage2(self, nb_removed = 4):
+        utils.remove_random_sensors(self, nb_removed)
+        
+        nb_added = 0
+        nb_added += utils.fix_broken_coverrage(self)
+        nb_added += utils.fix_broken_connection(self)
 
         if not(self.is_admissible()):
-            raise ValueError
+            raise RuntimeError
         
         logging.debug("Removed {} sensors".format(nb_removed - nb_added))
+
         return nb_removed - nb_added
-                   
+
+    ### Another local optimization using neighborhood1 structure          
     def optimize_voisi(self):
         
         voisi = True
         while voisi:
-            voisi, m = self.voisinage1()
+            voisi, _ = self.voisinage1()
 
+    ### Display solution
     def plot_sensors(self):
 
         _, ax = plt.subplots()

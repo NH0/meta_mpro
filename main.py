@@ -1,5 +1,8 @@
 from time import time
 
+import logging
+logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.INFO)
+
 import vns
 import Solution
 from configuration import PATH, NAME

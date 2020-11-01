@@ -1,4 +1,6 @@
 import numpy as np
+import networkx as nx
+import logging
 
 def distance(x1,x2):
     
@@ -29,7 +31,7 @@ def compute_barycenter(list_targets):
 
     return [-1, [x_mean, y_mean]]
 
-def find_closest_target(list_targets):
+def find_closest_target_to_barycenter(list_targets):
     barycenter = compute_barycenter(list_targets)
     
     return find_closest(barycenter, list_targets)
