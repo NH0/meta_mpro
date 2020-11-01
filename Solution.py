@@ -131,7 +131,7 @@ class Solution(Instance):
 
     def add_all(self):
 
-        for i in range(self._n):
+        for i in range(1, self._n):
             self.add_sensor(i)
 
     def _to_be_removed(self, min_coverage=0, r=0):

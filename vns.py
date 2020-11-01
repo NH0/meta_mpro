@@ -4,6 +4,7 @@ import logging
 
 
 def v(solution, k=0):
+    k = k + 2
     if k == 0:
         solution.neighborhood_5(to_add=int(solution.sensors.number_of_nodes() / 12))
     elif k == 1:
@@ -32,7 +33,7 @@ def start_vns(solution, k_max=4, max_time=120):
     while (time.time() - start_time) < max_time:
         k = 0
         print("Current VNS score : {}".format(best_solution.score))
-        logging.info("Starting new VNS loop\tExecution time is {:.2}".format(
+        logging.info("Starting new VNS loop\tExecution time is {:.2f}".format(
             time.time() - start_time))
         while k < k_max:
             solution_prim = v(copy.deepcopy(best_solution), k)

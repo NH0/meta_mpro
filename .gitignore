@@ -2,6 +2,7 @@
 .python-version
 .vscode
 configuration.py
+*.pyc
 
 # Ignore instance related files and pdfs
 Instances
@@ -9,6 +10,7 @@ Instances
 *.pdf
 *.zip
 *.png
+*.tgn
 
 # Ignore unused code
 main.cpp
