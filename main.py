@@ -339,7 +339,7 @@ class Solution(Instance):
     
     def recuit(self):
         
-        T = 50
+        T = 20
         p0 = 0.8
         c = 0
         self.Solution_save = self.copy()
