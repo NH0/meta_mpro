@@ -406,8 +406,9 @@ class Solution(Instance):
 
         T = 20
         cmax = 500
+        c = 0
         # Solution_save = self.copy()
-        while T > 0 and c < 500:
+        while T > 0 and c < cmax:
 
             self.Neighborhood_3()
             c += 1
