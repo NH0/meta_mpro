@@ -46,10 +46,10 @@ class Solution(Instance):
     # Add of remove sensors
     def _reduce_target(self, i):
 
-        inf_x = bisect(self._data_x[:, 1], list(np.array(self._data[i])
-                                                - np.array([self._rcapt, 0])))
-        sup_x = bisect(self._data_x[:, 1], list(np.array(self._data[i])
-                                                + np.array([self._rcapt, 0])))
+        inf_x = bisect(self._data_x[:, 1], list(
+            np.array(self._data[i]) - np.array([self._rcapt, 0])))
+        sup_x = bisect(self._data_x[:, 1], list(
+            np.array(self._data[i]) + np.array([self._rcapt, 0])))
 
         return inf_x, sup_x
 
@@ -127,7 +127,7 @@ class Solution(Instance):
 
         # sensor_to_be_removed_1, sensor_to_be_removed_2 = [], []
         sensor_to_be_removed_1 = []
-        degrees = self.sensors.degree()
+        # degrees = self.sensors.degree()
         if min_coverage > 0:
             for sensor in list(self.sensors.nodes)[1:]:
                 L1 = list(map(lambda target: len(
