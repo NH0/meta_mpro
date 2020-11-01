@@ -83,7 +83,7 @@ class Solution(Instance):
         #         self.sensors.add_edge(i,j)
 
         inf_x, sup_x = self._reduce_target(i)
-        self.counter += sup_x - inf_x
+
         for j in range(max(inf_x - 1, 0), min(sup_x + 1, self._n)):
             x_j = self._data_x[j][0]
             if self._distance_ind(i, x_j) <= self._rcapt:
@@ -122,6 +122,12 @@ class Solution(Instance):
         return self._is_connected() and self._is_covered()[0]
 
     # Optimize locally the solution
+    
+    def add_all(self):
+        
+        for i in range(self._n):
+            self.add_sensor(i)
+        
     def _to_be_removed(self, min_coverage=0, r=0):
 
         # sensor_to_be_removed_1, sensor_to_be_removed_2 = [], []
@@ -314,7 +320,7 @@ class Solution(Instance):
     def fix_broken_connection(self):
         nb_added = 0
         random_generator = np.random.default_rng()
-        while not(self.is_connected()):
+        while not(self._is_connected()):
             connected_components = [list(self.sensors.subgraph(
                 component).nodes) for component in nx.connected_components(self.sensors)]
             logging.debug("Neighborhood 2 : {} connected components".format(
@@ -415,14 +421,11 @@ class Solution(Instance):
                 self.remove_sensor(sensor)
             return False
 
-    def almost_annealing(self):
+    def almost_annealing(self, T=50, cmax=500):
 
-        T = 20
-        cmax = 500
         c = 0
         # Solution_save = self.copy()
         while T > 0 and c < cmax:
-
             self.neighborhood_3()
             c += 1
 
