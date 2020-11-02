@@ -9,14 +9,16 @@ def v(solution, k=0):
     elif k == 1:
         solution.neighborhood_3(to_add=int(solution.sensors.number_of_nodes() / 12))
     elif k == 2:
-        solution.neighborhood_1(max_coverage=0, q=0, nb_removed=1)
+        solution.neighborhood_2(to_remove=int(solution.sensors.number_of_nodes() / 12))
     elif k == 3:
-        solution.neighborhood_1(max_coverage=0, q=1, nb_removed=1)
+        solution.neighborhood_1(max_coverage=0, q=0, nb_removed=1)
     elif k == 4:
-        solution.neighborhood_1(max_coverage=0, q=2, nb_removed=1)
+        solution.neighborhood_1(max_coverage=0, q=1, nb_removed=1)
     elif k == 5:
-        solution.neighborhood_1(max_coverage=0, q=0, nb_removed=2)
+        solution.neighborhood_1(max_coverage=0, q=2, nb_removed=1)
     elif k == 6:
+        solution.neighborhood_1(max_coverage=0, q=0, nb_removed=2)
+    elif k == 7:
         solution.neighborhood_1(max_coverage=0, q=1, nb_removed=2)
     else:
         raise ValueError(k)
