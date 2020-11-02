@@ -443,6 +443,7 @@ class Solution(Instance):
         Add at most to_add sensors.
         Selecting the target, of those who are covered by exactly k sensors,
         who has the most number of neighbors covered by exactly k sensors.
+        It therefore tries to add sensors in regions with the smalest density of sensors.
         """
         nb_added = 0
         for i in range(to_add):
