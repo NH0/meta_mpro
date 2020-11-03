@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as ptc
 from collections import defaultdict
 from bisect import bisect
-from random import sample, shuffle
+from random import sample, shuffle, random
 from itertools import combinations
 
 import logging
@@ -64,6 +64,8 @@ class Solution(Instance):
         return x, inf_x, sup_x
 
     def add_sensor(self, i):
+        if i == 0:
+            print("c'est là")
         if i in self.sensors.nodes:
             logging.warning(" {} already a sensor ...\n\t{}".format(
                 i, inspect.getframeinfo(inspect.currentframe().f_back)))
@@ -84,7 +86,7 @@ class Solution(Instance):
 
         inf_x, sup_x = self._reduce_target(i)
 
-        for j in range(max(inf_x - 1, 0), min(sup_x + 1, self._n)):
+        for j in range(max(inf_x - 1, 1), min(sup_x + 1, self._n)):
             x_j = self._data_x[j][0]
             if self._distance_ind(i, x_j) <= self._rcapt:
                 self.target_coverage[x_j].append(i)
@@ -99,7 +101,7 @@ class Solution(Instance):
         del self.sensor_coverage[i]
 
         inf_x, sup_x = self._reduce_target(i)
-        for j in range(max(inf_x - 1, 0), min(sup_x + 1, self._n)):
+        for j in range(max(inf_x - 1, 1), min(sup_x + 1, self._n)):
             x_j = self._data_x[j][0]
             if i in self.target_coverage[x_j]:
                 self.target_coverage[x_j].remove(i)
@@ -125,7 +127,7 @@ class Solution(Instance):
     
     def add_all(self):
         
-        for i in range(self._n):
+        for i in range(1,self._n):
             self.add_sensor(i)
         
     def _to_be_removed(self, min_coverage=0, r=0):
@@ -215,13 +217,17 @@ class Solution(Instance):
         return i_max, max_coverage
 
     def _is_switchable(self, switch):
-
+        
         for i in range(len(switch)):
             try_switch = switch[i]
             for sensor in try_switch:
+                if sensor == 0:
+                    print("gros probleme")
                 self.add_sensor(sensor)
             if not self.is_admissible():
                 for sensor in try_switch:
+                    if sensor==0:
+                        print("problem")
                     self.remove_sensor(sensor)
             else:
                 return True
@@ -402,10 +408,10 @@ class Solution(Instance):
             voisi, _ = self.voisinage1()
 
     # Third neighborhood structure
-    def neighborhood_3(self, nb_added=20):
+    def neighborhood_3(self, nb_added=50):
 
         score = self.score
-        addable = [i for i in range(self._n) if i not in self.sensors.nodes]
+        addable = [i for i in range(1,self._n) if i not in self.sensors.nodes]
         to_add = sample(addable, nb_added)
         for sensor in to_add:
             self.add_sensor(sensor)
@@ -413,21 +419,100 @@ class Solution(Instance):
         if self.score < score:
             score = self.score
             logging.debug("Neighborhood 3 : score ", score)
+            # return 0,0
             return True
         else:
             for sensor in removed:
+                if sensor == 0:
+                    print("removed")
                 self.add_sensor(sensor)
             for sensor in to_add:
                 self.remove_sensor(sensor)
+            # return removed, to_add
             return False
 
-    def almost_annealing(self, T=50, cmax=500):
+    def almost_annealing(self, T=50, cmax=2500):
 
         c = 0
+        # r = 5
+        # Temp = 100
+        # phi = 0.99
         # Solution_save = self.copy()
+        # score_min = self.score
+        # while T > 0 and c < cmax:
+        #     for i in range(r):
+        #         score = self.score
+        #         print("current_score : ", score)
+        #         removed, to_add = self.neighborhood_3(T)
+        #         delta_E = self.score - score
+        #         if delta_E <= 0:
+        #             if self.score < score_min:
+        #                 score_min = self.score
+        #                 print("score_min : ", score_min)
+        #                 Solution_save = self.copy()
+        #         else:
+        #             q = random()
+        #             if q > np.exp(-delta_E/Temp):
+        #                 for sensor in removed:
+        #                     self.add_sensor(sensor)
+        #                 for sensor in to_add:
+        #                     self.remove_sensor(sensor)
+        #     Temp = phi * Temp
+        #             
+        #     if not c%10:
+        #         print("i = ", c)
+        #         print("score_min : ", score_min)
+        #         print("T : ",Temp)
+        #     c += 1
+        better = 0
         while T > 0 and c < cmax:
-            self.neighborhood_3()
+            print("better : ", better)
+            if self.neighborhood_3(T):
+                 better = 0
+            else:
+                better += 1
             c += 1
+            if better > 9:
+                print("reorganize")
+                print("i = ", c)
+                print("score_min : ", self.score)
+                self.re_organize()
+            
+    def re_organize(self):
+        
+        to_change = sample(list(self.sensors.nodes)[1:], 40)
+        if 0 in to_change:
+            print("problem 0")
+        for i_test in to_change:
+            to_test = self.target_coverage[i_test][:]
+            logging.debug(
+                "Removing sensors {}\tTarget node is {}".format(to_test, i_test))
+            if i_test in self.sensors.nodes:
+                switch = list(combinations(self.sensor_coverage[i_test], len(self.target_coverage[i_test])))
+                if 0 in switch:
+                    print("problem 1")
+                shuffle(switch)
+            else:
+                self.add_sensor(i_test)
+                targets = self.sensor_coverage[i_test][:]
+                self.remove_sensor(i_test)
+                switch = list(combinations(targets, len(self.target_coverage[i_test])))
+                shuffle(switch)
+                if 0 in switch:
+                    print("problem 2")
+            # if len(switch) > 5000:
+            #     switch = sample(switch,5000)
+            for sensor in to_test:
+                self.remove_sensor(sensor)
+
+            if not self._is_switchable(switch):
+                logging.debug(
+                    "Neighborhood 1 : Switch fail around {}".format(i_test))
+                for sensor in to_test:
+                    self.add_sensor(sensor)
+                print("problem")
+   
+           
 
     # Display solution
     def plot_sensors(self):
