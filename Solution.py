@@ -408,7 +408,7 @@ class Solution(Instance):
         return nb_added
 
     # Voisinage V_2
-    def neighborhood_2(self, to_remove=4):
+    def neighborhood_v_2(self, to_remove=4):
         """
         Remove to_remove sensors randomly selected.
         Then fix the coverage and connection for admissibility

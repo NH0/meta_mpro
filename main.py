@@ -14,7 +14,7 @@ def solve_with_vns():
     with open("logs.txt", "a") as f:
         f.write("-" * 70 + "\n")
     for name in NAMES[5:]:
-        for i in range(3):
+        for i in range(1, 3):
             for j in range(4):
                 print("---------------\n"
                       "Starting {name} with k={k} "
