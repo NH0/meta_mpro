@@ -1,56 +1,13 @@
 import vns
 import Solution
-import Instance
 from time import time
 
 from configuration import NAMES, NAME
-from quartering import quartering
 
 import logging
 logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.INFO)
 
 RS = [(1, 1), (1, 2), (2, 2), (2, 3)]
-
-
-def solve_with_almost_annealing():
-    Solution1 = Solution.Solution(NAME)
-    t = time()
-    Solution1.add_all()
-    t1 = time()
-    print("time to add everything : ", t1 - t)
-    Solution1.optimize_locally()
-    t2 = time()
-    print("time to optimize locally : ", t2 - t1)
-    print("first score : ", Solution1.score)
-    Solution1.almost_annealing(multiproc=False)
-    # t3 = time()
-    # print("time to optimize with first meta : ", t3 - t2)
-    # Solution1.optimize_voisi()
-    # t4 = time()
-    # print(t4 - t3)
-    # print(Solution1.score)
-    # Solution1.plot_sensors()
-
-
-def mean_almost_annealing():
-    nb = 5
-    score = 0
-    score_min = 1500
-    for j in range(nb):
-        Solution1 = Solution.Solution(NAME)
-        print("#################################")
-        print("#################################")
-        print(j)
-        print("#################################")
-        print("#################################")
-        Solution1.add_all()
-        Solution1.optimize_locally()
-        Solution1.almost_annealing(100)
-        score += Solution1.score
-        if Solution1.score < score_min:
-            score_min = Solution1.score
-        print(Solution1.score)
-    print(score / nb)
 
 
 def solve_with_vns():
@@ -71,21 +28,16 @@ def solve_with_vns():
                 t = time()
                 Solution1.add_all()
                 t1 = time()
-                print("time to add everything : ", t1 - t)
+                print("time to add everything : {:.2f}".format(t1 - t))
                 Solution1.optimize_locally()
                 t2 = time()
-                print("time to optimize locally : ", t2 - t1)
+                print("time to optimize locally : {:.2f}".format(t2 - t1))
                 print("first score : ", Solution1.score)
                 t3 = time()
-                # Solution1.almost_annealing()
                 print("time to optimize with first meta : ", t3 - t2)
-                # Solution1.optimize_voisi()
-                t4 = time()
-                print(t4 - t3)
-                print(Solution1.score)
                 Solution2, scores = vns.start_vns(Solution1)
-                t5 = time()
-                print("VNS time : {:.1f}".format(t5 - t4))
+                t4 = time()
+                print("VNS time : {:.1f}".format(t4 - t3))
                 print("Initial score {}\t VNS score {}".format(Solution1.score, Solution2.score))
                 print("Solution sensors ", list(Solution2.sensors.nodes))
                 with open("logs.txt", "a") as f:
@@ -104,6 +56,4 @@ def solve_with_vns():
 
 
 if __name__ == "__main__":
-    # solve_with_vns()
-    solve_with_almost_annealing()
-    # mean_almost_annealing()
+    solve_with_vns()

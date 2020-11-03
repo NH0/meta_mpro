@@ -10,7 +10,7 @@ def find_t0(solution0, pi=0.3, number_of_neighbors=20):
     medium_score = 0
     for i in range(number_of_neighbors):
         neighbor = copy.deepcopy(solution0)
-        neighbor.neighborhood_5(to_add=int(neighbor.sensors.number_of_nodes() / 12))
+        neighbor.neighborhood_3(to_add=int(neighbor.sensors.number_of_nodes() / 12))
         medium_score += int(neighbor.score)
     medium_score = medium_score / number_of_neighbors
     delta_f = medium_score - score0
@@ -20,11 +20,11 @@ def find_t0(solution0, pi=0.3, number_of_neighbors=20):
 
 def v(solution, k=0):
     if k == 0:
-        solution.neighborhood_5(to_add=int(solution.score / 6))
+        solution.neighborhood_3(to_add=int(solution.score / 6))
     elif k == 1:
-        solution.neighborhood_5(to_add=int(solution.score / 5))
+        solution.neighborhood_3(to_add=int(solution.score / 5))
     elif k == 2:
-        solution.neighborhood_5(to_add=int(solution.score / 4))
+        solution.neighborhood_3(to_add=int(solution.score / 4))
     else:
         raise ValueError(k)
 
