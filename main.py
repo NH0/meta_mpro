@@ -110,3 +110,5 @@ def solve_with_vns():
 
 if __name__ == "__main__":
     solve_with_vns()
+    # solve_with_almost_annealing()
+    # mean_almost_annealing()
