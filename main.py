@@ -22,19 +22,14 @@ def solve_with_almost_annealing():
     t2 = time()
     print("time to optimize locally : ", t2 - t1)
     print("first score : ", Solution1.score)
-    Solution1.almost_annealing()
-    t3 = time()
-    print("time to optimize with first meta : ", t3 - t2)
-    quartering(Solution1)
-    Solution1.optimize_voisi()
-    t4 = time()
-    print(t4 - t3)
-    print(Solution1.score)
-    vns.start_vns(Solution1)
-    t5 = time()
-    print("VNS time : ", t5 - t4, end="")
-    print(Solution1.score)
-    Solution1.plot_sensors()
+    Solution1.almost_annealing(multiproc=True)
+    # t3 = time()
+    # print("time to optimize with first meta : ", t3 - t2)
+    # Solution1.optimize_voisi()
+    # t4 = time()
+    # print(t4 - t3)
+    # print(Solution1.score)
+    # Solution1.plot_sensors()
 
 
 def mean_almost_annealing():
@@ -61,7 +56,7 @@ def mean_almost_annealing():
 def solve_with_vns():
     with open("logs.txt", "a") as f:
         f.write("-" * 70 + "\n")
-    for name in NAMES[3:]:
+    for name in NAMES[5:]:
         for i in range(3):
             for j in range(4):
                 print("---------------\n"

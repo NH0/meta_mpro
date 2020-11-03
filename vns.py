@@ -5,7 +5,7 @@ import math
 import copy
 
 
-def find_t0(solution0, pi=0.5, number_of_neighbors=20):
+def find_t0(solution0, pi=0.3, number_of_neighbors=20):
     score0 = solution0.score
     medium_score = 0
     for i in range(number_of_neighbors):
@@ -20,11 +20,11 @@ def find_t0(solution0, pi=0.5, number_of_neighbors=20):
 
 def v(solution, k=0):
     if k == 0:
-        solution.neighborhood_5(to_add=int(solution.sensors.number_of_nodes() / 6))
+        solution.neighborhood_5(to_add=int(solution.score / 5))
     elif k == 1:
-        solution.neighborhood_3(nb_added=int(solution.sensors.number_of_nodes() / 6))
+        solution.neighborhood_3(nb_added=int(solution.score / 6))
     elif k == 2:
-        solution.neighborhood_2(to_remove=int(solution.sensors.number_of_nodes() / 5))
+        solution.neighborhood_2(to_remove=int(solution.score / 5))
     elif k == 3:
         solution.neighborhood_1(max_coverage=0, q=0, nb_removed=1)
     elif k == 4:
@@ -41,7 +41,7 @@ def v(solution, k=0):
     return solution
 
 
-def start_vns(solution, k_max=3, max_time=150, max_unimproving_iters=400, phi=0.9, steps=15):
+def start_vns(solution, k_max=3, max_time=500, max_unimproving_iters=50, phi=0.8, steps=15):
     best_solution = copy.deepcopy(solution)
     current_solution = copy.deepcopy(solution)
     t0 = find_t0(solution)
@@ -104,5 +104,8 @@ def start_vns(solution, k_max=3, max_time=150, max_unimproving_iters=400, phi=0.
             if (unimproving_iterations + 1) % steps == 0:
                 logging.info("Reducing temperature {}".format(temperature))
                 temperature = phi * temperature
+                logging.info("Reorganizing")
+                current_solution = copy.deepcopy(best_solution)
+                current_solution.re_organize(int(current_solution.score / 2), multiproc=False)
 
     return best_solution, scores
