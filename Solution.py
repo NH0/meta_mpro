@@ -278,7 +278,7 @@ class Solution(Instance):
 
     # Voisinage V_1
     def neighborhood_v_1(self, nb_added):
-
+        """Function trying to improve the solution by adding """
         score = self.score
         addable = [i for i in range(1, self._n) if i not in self.sensors.nodes]
         to_add = sample(addable, nb_added)
@@ -291,8 +291,6 @@ class Solution(Instance):
             return True
         else:
             for sensor in removed:
-                if sensor == 0:
-                    print("removed")
                 self.add_sensor(sensor)
             for sensor in to_add:
                 self.remove_sensor(sensor)
