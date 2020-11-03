@@ -234,31 +234,50 @@ class Solution(Instance):
                 return True
         return False
 
-    def test_one_switch_multiproc(self, single_switch):
-        for sensor in single_switch:
-            if sensor == 0:
-                print("gros probleme")
+    # Voisinage V_1
+    def neighborhood_v_1(self, nb_added):
+
+        score = self.score
+        addable = [i for i in range(1, self._n) if i not in self.sensors.nodes]
+        to_add = sample(addable, nb_added)
+        for sensor in to_add:
             self.add_sensor(sensor)
-        if not self.is_admissible():
-            for sensor in single_switch:
+        removed = self.optimize_locally()
+        if self.score < score:
+            score = self.score
+            logging.debug("Neighborhood 3 : {}", score)
+            return True
+        else:
+            for sensor in removed:
                 if sensor == 0:
-                    print("problem")
+                    print("removed")
+                self.add_sensor(sensor)
+            for sensor in to_add:
                 self.remove_sensor(sensor)
-
-            return 0
-
-        return 1
-
-    def _is_switchable_multiproc(self, switch):
-
-        with concurrent.futures.ProcessPoolExecutor(max_workers=4) as worker_pool:
-            futures = [worker_pool.submit(self.test_one_switch_multiproc, switch[i])
-                       for i in range(len(switch))]
-            for future in concurrent.futures.as_completed(futures):
-                if future.result() == 1:
-                    return True
             return False
 
+    def re_organize(self, nb_reorganized):
+
+        to_change = sample(range(1, self._n), nb_reorganized)
+
+        for i_test in to_change:
+            to_test = self.target_coverage[i_test][:]
+            logging.debug(
+                "Removing sensors {}\tTarget node is {}".format(to_test, i_test))
+
+            switch = list(combinations(self.neighbors.neighbors(
+                i_test), len(self.target_coverage[i_test])))
+            shuffle(switch)
+
+            for sensor in to_test:
+                self.remove_sensor(sensor)
+            if not self._is_switchable(switch):
+                logging.debug(
+                    "Neighborhood 1 : Switch fail around {}".format(i_test))
+                for sensor in to_test:
+                    self.add_sensor(sensor)
+
+    # Fonctions relatives au voisinage V_2
     def add_sensor_close_to_target(self, target_index):
         if target_index in self.sensors.nodes or target_index == 0:
             index_neighbors = np.array(
@@ -409,58 +428,7 @@ class Solution(Instance):
 
         return to_remove - nb_added
 
-    # Voisinage V_1
-    def neighborhood_v_1(self, nb_added):
-
-        score = self.score
-        addable = [i for i in range(1, self._n) if i not in self.sensors.nodes]
-        to_add = sample(addable, nb_added)
-        for sensor in to_add:
-            self.add_sensor(sensor)
-        removed = self.optimize_locally()
-        if self.score < score:
-            score = self.score
-            logging.debug("Neighborhood 3 : {}", score)
-            return True
-        else:
-            for sensor in removed:
-                if sensor == 0:
-                    print("removed")
-                self.add_sensor(sensor)
-            for sensor in to_add:
-                self.remove_sensor(sensor)
-            return False
-
-    def re_organize(self, nb_reorganized, multiproc=True):
-
-        to_change = sample(range(1, self._n), nb_reorganized)
-
-        for i_test in to_change:
-            to_test = self.target_coverage[i_test][:]
-            logging.debug(
-                "Removing sensors {}\tTarget node is {}".format(to_test, i_test))
-
-            switch = list(combinations(self.neighbors.neighbors(
-                i_test), len(self.target_coverage[i_test])))
-            shuffle(switch)
-
-            for sensor in to_test:
-                self.remove_sensor(sensor)
-            if multiproc:
-                if not self._is_switchable_multiproc(switch):
-                    logging.debug(
-                        "Neighborhood 1 : Switch fail around {}".format(i_test))
-                    for sensor in to_test:
-                        self.add_sensor(sensor)
-            else:
-                if not self._is_switchable(switch):
-                    logging.debug(
-                        "Neighborhood 1 : Switch fail around {}".format(i_test))
-                    for sensor in to_test:
-                        self.add_sensor(sensor)
-
     # Display solution
-
     def plot_sensors(self):
 
         _, ax = plt.subplots()
