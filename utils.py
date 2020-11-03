@@ -1,11 +1,13 @@
 import numpy as np
-import networkx as nx
-import logging
+
+# Compute the distance between x1 and x2
 
 
 def distance(x1, x2):
 
     return np.sqrt((x1[0] - x2[0])**2 + (x1[1] - x2[1])**2)
+
+# find the closest element to x in a list of elements
 
 
 def find_closest(x, list_of_xs):
@@ -20,6 +22,8 @@ def find_closest(x, list_of_xs):
 
     return closest
 
+# compute the mean of elements over and axis
+
 
 def compute_mean(list_targets, axis=0):
     axis_sum = 0
@@ -28,12 +32,16 @@ def compute_mean(list_targets, axis=0):
 
     return axis_sum / len(element)
 
+# compute the barycenter of a list of targets
+
 
 def compute_barycenter(list_targets):
     x_mean = compute_mean(list_targets, 0)
     y_mean = compute_mean(list_targets, 1)
 
     return [-1, [x_mean, y_mean]]
+
+# find the closest element in a list of target to the barycenter of the list
 
 
 def find_closest_target_to_barycenter(list_targets):
