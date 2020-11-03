@@ -40,6 +40,10 @@ class Solution(Instance):
 
     # Trouver les cibles proches d'une cible i
     def _reduce_target(self, i):
+        """This function is used to reduce the number of targets checked 
+        when checking for all the targets within rcapt range of sensor i.
+        Typically, instead of checking all targets, one checks the targets from x_i - rcapt to x_i + r_capt
+        along the x axis (x_i is the first coordinate of sensor i)"""
 
         inf_x = bisect(self._data_x[:, 1], list(
             np.array(self._data[i]) - np.array([self._rcapt, 0])))
@@ -49,6 +53,7 @@ class Solution(Instance):
         return inf_x, sup_x
 
     def _find_neighbors(self, i, distance=1):
+        """ Function used to find the all targets within rcapt range of sensor i"""
         neighbors = []
         inf_x, sup_x = self._reduce_target(i)
         for j in range(max(inf_x - 1, 1), min(sup_x + 1, self._n)):
@@ -59,6 +64,7 @@ class Solution(Instance):
         return neighbors
 
     def _reduce_sensors(self, i):
+        """ Same as reduce_target but for sensors (with r_com)"""
 
         x = bisect(np.array(self.sensors_sorted, dtype=object)
                    [:, 1], self._data[i])
@@ -71,6 +77,7 @@ class Solution(Instance):
 
     # Ajouter ou supprimer des capteurs
     def add_sensor(self, i):
+        """ Add a sensor to the solution"""
 
         if i in self.sensors.nodes:
             logging.warning(" {} already a sensor ...\n\t{}".format(
@@ -100,6 +107,7 @@ class Solution(Instance):
         return 1
 
     def remove_sensor(self, i):
+        """ remove a sensor to the solution"""
 
         self.sensors.remove_node(i)
         self.sensors_sorted.remove([i, self._data[i]])
@@ -112,10 +120,13 @@ class Solution(Instance):
 
     # Check admissibility
     def _is_connected(self):
+        """ Checking if the Graph of sensors is connected i.e. 
+        if the communication to the base can be established"""
 
         return nx.is_connected(self.sensors)
 
     def _is_covered(self):
+        """ Checking if all target has at least k sensors related"""
         for i in range(1, self._n):
             if len(self.target_coverage[i]) < self._k:
 
@@ -124,12 +135,14 @@ class Solution(Instance):
         return True, -1
 
     def is_admissible(self):
+        """ Checking if the current solution is admissible combining both 
+        former functions """
 
         return self._is_connected() and self._is_covered()[0]
 
     # Fonctions relatives à l'optimisation locale
     def add_all(self):
-
+        """ Add all the sensors to create the first admissible solution"""
         for i in range(1, self._n):
             self.sensors.add_node(i)
             x, inf_x, sup_x = self._reduce_sensors(i)
@@ -146,7 +159,7 @@ class Solution(Instance):
                 self.neighbors.add_edge(i, x_j)
 
     def _to_be_removed(self, min_coverage=0, r=0):
-
+        """ Gives a list of candidate sensors for removal without losing admissibility"""
         sensor_to_be_removed_1 = []
         if min_coverage > 0:
             for sensor in list(self.sensors.nodes)[1:]:
@@ -172,6 +185,7 @@ class Solution(Instance):
         return min_coverage, sensor_to_be_removed_1
 
     def _is_removable(self, to_remove):
+        """ Check if at least one sensor from to_be_removed can indeed be removed"""
 
         for i in to_remove:
             self.remove_sensor(i)
@@ -182,7 +196,7 @@ class Solution(Instance):
         return False, 0
 
     def _is_removable_through_r(self, r_max):
-
+        """ Adapt to_be_removed with a parameter r giving different list of candidates"""
         min_coverage = 0
         for r in range(r_max):
             min_coverage, to_remove = self._to_be_removed(min_coverage, r)
@@ -193,6 +207,8 @@ class Solution(Instance):
 
     # Optimisation locale
     def optimize_locally(self, r_max=2):
+        """ Optimize the solution by removing a sensor with the _is_removable_through_r
+        method as long as possible"""
 
         admissible = True
         L_removed = []
@@ -205,6 +221,7 @@ class Solution(Instance):
 
     # Fonctions relatives au voisinage V_1
     def _find_max_coverage(self, max_coverage, q):
+        """ returns the targets with the largest amount of sensors related"""
         i_max = []
         if max_coverage == 0:
             for i in range(1, self._n):
@@ -220,6 +237,7 @@ class Solution(Instance):
         return i_max, max_coverage
 
     def _is_switchable(self, switch):
+        """ Permute a list of sensors if possible. Else returns false"""
 
         for i in range(len(switch)):
             try_switch = switch[i]
@@ -237,7 +255,8 @@ class Solution(Instance):
         return False
 
     def re_organize(self, nb_reorganized):
-
+        """ Function that switches to another admissible solution with the
+        same number of sensors"""
         to_change = sample(range(1, self._n), nb_reorganized)
 
         for i_test in to_change:
@@ -259,7 +278,9 @@ class Solution(Instance):
 
     # Voisinage V_1
     def neighborhood_v_1(self, nb_added):
-
+        """Function trying to improve the solution by adding a fixed number
+        of sensors and then use the function opitimize_locally.
+        The solution is only kept if the score is improved"""
         score = self.score
         addable = [i for i in range(1, self._n) if i not in self.sensors.nodes]
         to_add = sample(addable, nb_added)
@@ -272,8 +293,6 @@ class Solution(Instance):
             return True
         else:
             for sensor in removed:
-                if sensor == 0:
-                    print("removed")
                 self.add_sensor(sensor)
             for sensor in to_add:
                 self.remove_sensor(sensor)
@@ -432,7 +451,8 @@ class Solution(Instance):
 
     # Display solution
     def plot_sensors(self):
-
+        """Display the targets in blue and the sensors in red
+        The green circle is the r_capt radius ball"""
         _, ax = plt.subplots()
         ax.set_aspect('equal', adjustable='box')
 
