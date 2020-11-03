@@ -20,7 +20,6 @@ class Solution(Instance):
 
     def __init__(self, name, ind_radius=0, ind_k=0, path=PATH):
         Instance.__init__(self, name, ind_radius, ind_k, path)
-        self._name = name
         self.sensors = nx.Graph()
         self.sensors.add_node(0)
         self.sensors_sorted = [[0, [0., 0.]]]
@@ -51,6 +50,16 @@ class Solution(Instance):
             np.array(self._data[i]) + np.array([self._rcapt, 0])))
 
         return inf_x, sup_x
+
+    def _find_neighbors(self, i, distance=1):
+        neighbors = []
+        inf_x, sup_x = self._reduce_target(i)
+        for j in range(max(inf_x - 1, 1), min(sup_x + 1, self._n)):
+            x_j = self._data_x[j][0]
+            if self._distance_ind(i, x_j) <= distance:
+                neighbors.append(x_j)
+
+        return neighbors
 
     def _reduce_sensors(self, i):
 
@@ -84,13 +93,10 @@ class Solution(Instance):
         #     if self._distance_ind(i,j) < self._rcom:
         #         self.sensors.add_edge(i,j)
 
-        inf_x, sup_x = self._reduce_target(i)
-
-        for j in range(max(inf_x - 1, 1), min(sup_x + 1, self._n)):
-            x_j = self._data_x[j][0]
-            if self._distance_ind(i, x_j) <= self._rcapt:
-                self.target_coverage[x_j].append(i)
-                self.sensor_coverage[i].append(x_j)
+        neighbors = self._find_neighbors(i, distance=self._rcapt)
+        for x_j in neighbors:
+            self.target_coverage[x_j].append(i)
+            self.sensor_coverage[i].append(x_j)
 
         return 1
 
@@ -124,12 +130,12 @@ class Solution(Instance):
         return self._is_connected() and self._is_covered()[0]
 
     # Optimize locally the solution
-    
+
     def add_all(self):
-        
-        for i in range(1,self._n):
+
+        for i in range(1, self._n):
             self.add_sensor(i)
-        
+
     def _to_be_removed(self, min_coverage=0, r=0):
 
         # sensor_to_be_removed_1, sensor_to_be_removed_2 = [], []
@@ -233,7 +239,7 @@ class Solution(Instance):
                 return True
         return False
 
-    def voisinage1(self, max_coverage=0, q=0, nb_removed=1):
+    def neighborhood_1(self, max_coverage=0, q=0, nb_removed=1):
         """
         q : le q ième plus grand nombre de capteurs
         nb_removed : on retire p et on ajoute p-i
@@ -267,6 +273,7 @@ class Solution(Instance):
                 logging.debug("Neighborhood 1 : Switch sucess around {}"
                               "\tNew score {}".format(
                                   i_test, self.score))
+                logging.info("Neighborhood 1 : Removed 1 sensor")
                 return 1, max_coverage
 
         return 0, max_coverage
@@ -274,7 +281,7 @@ class Solution(Instance):
     # Second neighborhood structure
     def add_sensor_close_to_target(self, target_index):
         if target_index in self.sensors.nodes or target_index == 0:
-            index_neighboors = np.array(
+            index_neighbors = np.array(
                 sorted(
                     self._data.items(),
                     key=lambda x: utils.distance(
@@ -282,11 +289,11 @@ class Solution(Instance):
                         self._data[target_index])),
                 dtype=object)
             i = 0
-            while index_neighboors[i][0] in self.sensors.nodes:
+            while index_neighbors[i][0] in self.sensors.nodes:
                 i += 1
-            self.add_sensor(index_neighboors[i][0])
+            self.add_sensor(index_neighbors[i][0])
             logging.debug("close to target : added sensor (neighbor of {}) {}".format(
-                target_index, index_neighboors[i][0]))
+                target_index, index_neighbors[i][0]))
         else:
             self.add_sensor(target_index)
             logging.debug(
@@ -386,26 +393,27 @@ class Solution(Instance):
 
         return nb_added
 
-    def neighborhood_2(self, nb_removed=4):
-        self.remove_random_sensors(nb_removed)
+    def neighborhood_2(self, to_remove=4):
+        """
+        Remove to_remove sensors randomly selected.
+        Then fix the coverage and connection for admissibility
+        """
+        self.remove_random_sensors(to_remove)
 
         nb_added = 0
+        nb_added += self.fix_broken_connection()
         nb_added += self.fix_broken_coverrage()
         nb_added += self.fix_broken_connection()
 
         if not(self.is_admissible()):
             raise RuntimeError
 
-        logging.debug("Removed {} sensors".format(nb_removed - nb_added))
+        if to_remove - nb_added > 0:
+            logging.info("Neighborhood 2 : Removed {} sensors".format(to_remove - nb_added))
+        else:
+            logging.info("Neighborhood 2 : Added {} sensors".format(nb_added - to_remove))
 
-        return nb_removed - nb_added
-
-    # Another local optimization using neighborhood1 structure
-    def optimize_voisi(self):
-
-        voisi = True
-        while voisi:
-            voisi, _ = self.voisinage1()
+        return to_remove - nb_added
 
     # Third neighborhood structure
     def neighborhood_3(self, nb_added=50):
@@ -513,6 +521,75 @@ class Solution(Instance):
                 print("problem")
    
            
+
+    # Fourth neighborhood structure
+    def neighborhood_4(self, to_add=20):
+        """
+        Add at most to_add sensors.
+        Selecting the target, of those who are covered by exactly k sensors,
+        who has the most number of neighbors covered by exactly k sensors.
+        It therefore tries to add sensors in regions with the smalest density of sensors.
+        """
+        nb_added = 0
+        for i in range(to_add):
+            targets_k_covered = [target for target in self._data if len(
+                self.target_coverage[target]) == self._k and target not in self.sensors.nodes]
+
+            if len(targets_k_covered) == 0:
+                logging.debug(
+                    "Neighborhood 4 :"
+                    "All targets are strictly more than {} covered".format(self._k))
+                break
+
+            nb_of_neighbors_k_covered = [len([neighbor
+                                              for neighbor in self._find_neighbors(target,
+                                                                                   self._rcapt)
+                                              if len(self.target_coverage[neighbor]) == self._k])
+                                         for target in targets_k_covered]
+
+            best_target = targets_k_covered[nb_of_neighbors_k_covered.index(
+                max(nb_of_neighbors_k_covered))]
+
+            self.add_sensor(best_target)
+            nb_added += 1
+
+        logging.info("Neighborhood 4 : Added {} sensors".format(nb_added))
+        return nb_added
+
+    # Fifth neighborhood structure
+    def neighborhood_5(self, to_add=20):
+        """
+        Add at most to_add sensors.
+        Adding a sensor closest to the sensor covering the most targets.
+        Cannot add at the same place at each iteration.
+        """
+        nb_added = 0
+        available_sensors = self.sensors_sorted[:]
+        for i in range(to_add):
+            biggest_sensor = available_sensors[0]
+            biggest_coverage = len(biggest_sensor[1])
+
+            for sensor in available_sensors[1:]:
+                if len(sensor[1]) > biggest_coverage:
+                    biggest_sensor = sensor
+                    biggest_coverage = len(sensor[1])
+
+            self.add_sensor_close_to_target(biggest_sensor[0])
+            nb_added += 1
+
+            available_sensors.remove(biggest_sensor)
+            if len(available_sensors) == 0:
+                break
+
+        logging.info("Neighborhood 5 : Added {} sensors".format(nb_added))
+        return nb_added
+
+    # Another local optimization using neighborhood1 structure
+    def optimize_voisi(self):
+
+        voisi = True
+        while voisi:
+            voisi, _ = self.neighborhood_1()
 
     # Display solution
     def plot_sensors(self):
