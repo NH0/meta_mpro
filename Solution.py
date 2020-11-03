@@ -38,11 +38,12 @@ class Solution(Instance):
 
         return copy.deepcopy(self)
 
-    # Trouver les cibles proches d'une cible i
+    # Find the targets close to a target i
     def _reduce_target(self, i):
-        """This function is used to reduce the number of targets checked 
+        """This function is used to reduce the number of targets checked
         when checking for all the targets within rcapt range of sensor i.
-        Typically, instead of checking all targets, one checks the targets from x_i - rcapt to x_i + r_capt
+        Typically, instead of checking all targets, one checks the targets
+            from x_i - rcapt to x_i + r_capt
         along the x axis (x_i is the first coordinate of sensor i)"""
 
         inf_x = bisect(self._data_x[:, 1], list(
@@ -75,7 +76,7 @@ class Solution(Instance):
 
         return x, inf_x, sup_x
 
-    # Ajouter ou supprimer des capteurs
+    # Add or delete sensor i
     def add_sensor(self, i):
         """ Add a sensor to the solution"""
 
@@ -120,7 +121,7 @@ class Solution(Instance):
 
     # Check admissibility
     def _is_connected(self):
-        """ Checking if the Graph of sensors is connected i.e. 
+        """ Checking if the Graph of sensors is connected i.e.
         if the communication to the base can be established"""
 
         return nx.is_connected(self.sensors)
@@ -135,12 +136,12 @@ class Solution(Instance):
         return True, -1
 
     def is_admissible(self):
-        """ Checking if the current solution is admissible combining both 
+        """ Checking if the current solution is admissible combining both
         former functions """
 
         return self._is_connected() and self._is_covered()[0]
 
-    # Fonctions relatives à l'optimisation locale
+    # Fonctions linked to the local optimization
     def add_all(self):
         """ Add all the sensors to create the first admissible solution"""
         for i in range(1, self._n):
@@ -205,7 +206,7 @@ class Solution(Instance):
                 return True, removed
         return False, 0
 
-    # Optimisation locale
+    # Local optimization
     def optimize_locally(self, r_max=2):
         """ Optimize the solution by removing a sensor with the _is_removable_through_r
         method as long as possible"""
@@ -219,7 +220,7 @@ class Solution(Instance):
 
         return L_removed
 
-    # Fonctions relatives au voisinage V_1
+    # Fonctions linked to V_1 (neighborhood V_1)
     def _find_max_coverage(self, max_coverage, q):
         """ returns the targets with the largest amount of sensors related"""
         i_max = []
@@ -276,7 +277,7 @@ class Solution(Instance):
                 for sensor in to_test:
                     self.add_sensor(sensor)
 
-    # Voisinage V_1
+    # Neighborhood V_1
     def neighborhood_v_1(self, nb_added):
         """Function trying to improve the solution by adding a fixed number
         of sensors and then use the function opitimize_locally.
@@ -298,9 +299,18 @@ class Solution(Instance):
                 self.remove_sensor(sensor)
             return False
 
-    # Fonctions relatives au voisinage V_2
+    # Fonctions linked to V_2 (neighborhood V_2)
     def add_sensor_close_to_target(self, target_index):
+        """
+        This functions adds a sensor closest possible to the target target_index.
+        If the target isn't a sensor, it adds a sensor on it.
+        Else, it sorts all the targets by distance to target_index. Then reads
+        trough the list to find the first element not a sensor. And adds a
+        sensor on this element.
+        """
+        # we can't add on a sensor, or on 0
         if target_index in self.sensors.nodes or target_index == 0:
+            # sort elements
             index_neighbors = np.array(
                 sorted(
                     self._data.items(),
@@ -309,6 +319,7 @@ class Solution(Instance):
                         self._data[target_index])),
                 dtype=object)
             i = 0
+            # go through the list to find the first element not a sensor
             while i < len(index_neighbors) and (index_neighbors[i][0] in self.sensors.nodes):
                 i += 1
             if i == len(index_neighbors):
@@ -317,15 +328,18 @@ class Solution(Instance):
             self.add_sensor(index_neighbors[i][0])
             logging.debug("close to target : added sensor (neighbor of {}) {}".format(
                 target_index, index_neighbors[i][0]))
-        else:
+        else:  # target_index is not a sensor
             self.add_sensor(target_index)
             logging.debug(
                 "close to target : added sensor {}".format(target_index))
 
     def remove_random_sensors(self, nb_removed):
+        """
+        Remove nb_removed sensors from the solution, selected at random.
+        """
         random_generator = np.random.default_rng()
 
-        if 0 in self.sensors.nodes:
+        if 0 in self.sensors.nodes:  # If 0 inside, do not remove as it does't count as a sensor
             list_choices = list(self.sensors.nodes)
             list_choices.remove(0)
             to_be_removed = random_generator.choice(list_choices,
@@ -344,6 +358,11 @@ class Solution(Instance):
             self.remove_sensor(sensor)
 
     def fix_broken_coverrage(self):
+        """
+        Fix the fact that some targets aren't coverred by at least k sensors.
+        For this it adds a sensor on those targets, one at a time, checking
+        the coverrage between two additions.
+        """
         nb_added = 0
         is_covered, index_not_covered = self._is_covered()
         while not(is_covered):
@@ -356,6 +375,13 @@ class Solution(Instance):
         return nb_added
 
     def fix_broken_connection(self):
+        """
+        Function to fix the broken connections of sensors in a solution.
+        It tries to find one by one the closest connected component to the initial component
+        containing (0,0).
+        For each connected component, it adds a sensors at mid-distance between the two components.
+        For further details, see the report about V_2.
+        """
         nb_added = 0
         random_generator = np.random.default_rng()
         while not(self._is_connected()):
@@ -426,7 +452,7 @@ class Solution(Instance):
 
         return nb_added
 
-    # Voisinage V_2
+    # Neighborhood V_2
     def neighborhood_v_2(self, to_remove=4):
         """
         Remove to_remove sensors randomly selected.
@@ -435,7 +461,6 @@ class Solution(Instance):
         self.remove_random_sensors(to_remove)
 
         nb_added = 0
-        nb_added += self.fix_broken_connection()
         nb_added += self.fix_broken_coverrage()
         nb_added += self.fix_broken_connection()
 
