@@ -61,7 +61,7 @@ def mean_almost_annealing():
 def solve_with_vns():
     with open("logs.txt", "a") as f:
         f.write("-" * 70 + "\n")
-    for name in NAMES:
+    for name in NAMES[3:]:
         for i in range(3):
             for j in range(4):
                 print("---------------\n"

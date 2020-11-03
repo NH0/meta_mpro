@@ -41,7 +41,7 @@ def v(solution, k=0):
     return solution
 
 
-def start_vns(solution, k_max=3, max_time=150, max_unimproving_iters=400, phi=0.9, steps=250):
+def start_vns(solution, k_max=3, max_time=150, max_unimproving_iters=400, phi=0.9, steps=15):
     best_solution = copy.deepcopy(solution)
     current_solution = copy.deepcopy(solution)
     t0 = find_t0(solution)
@@ -101,7 +101,7 @@ def start_vns(solution, k_max=3, max_time=150, max_unimproving_iters=400, phi=0.
                     k += 1
 
             iteration += 1
-            if iteration % steps == 0:
+            if (unimproving_iterations + 1) % steps == 0:
                 logging.info("Reducing temperature {}".format(temperature))
                 temperature = phi * temperature
 
