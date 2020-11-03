@@ -203,7 +203,7 @@ class Solution(Instance):
 
         return L_removed
 
-    # Fonctions relatives au voisinage V_2
+    # Fonctions relatives au voisinage V_1
     def _find_max_coverage(self, max_coverage, q):
         i_max = []
         if max_coverage == 0:
@@ -280,7 +280,6 @@ class Solution(Instance):
             return False
 
     # Fonctions relatives au voisinage V_2
-
     def add_sensor_close_to_target(self, target_index):
         if target_index in self.sensors.nodes or target_index == 0:
             index_neighbors = np.array(
