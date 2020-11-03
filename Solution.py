@@ -1,8 +1,10 @@
+import concurrent.futures
 import networkx as nx
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.patches as ptc
 import copy
+import time
 from collections import defaultdict
 from bisect import bisect
 from random import sample, shuffle, random
@@ -107,7 +109,7 @@ class Solution(Instance):
 
         neighbors = list(self.neighbors.neighbors(i))
         for x_j in neighbors:
-            self.target_coverage[x_j].remove(i)
+            self.target_coverage[x_j] = list(filter(lambda x: x != i, self.target_coverage[x_j]))
 
         return 1
 
@@ -253,6 +255,39 @@ class Solution(Instance):
             else:
                 return True
         return False
+
+    def test_one_switch_multiproc(self, single_switch):
+        for sensor in single_switch:
+            if sensor == 0:
+                print("gros probleme")
+            self.add_sensor(sensor)
+        if not self.is_admissible():
+            for sensor in single_switch:
+                if sensor == 0:
+                    print("problem")
+                self.remove_sensor(sensor)
+
+            return 0
+
+        return 1
+
+    def _is_switchable_multiproc(self, switch):
+
+        with concurrent.futures.ProcessPoolExecutor(max_workers=4) as worker_pool:
+            futures = [worker_pool.submit(self.test_one_switch_multiproc, switch[i])
+                       for i in range(len(switch))]
+            for future in concurrent.futures.as_completed(futures):
+                if future.result() == 1:
+                    return True
+            return False
+
+        # pool = mp.Pool(processes=4)
+        # results = [pool.apply_async(self.test_one_switch_multiproc, args=(switch[i],))
+        #            for i in range(len(switch))]
+        # for p in results:
+        #     if p.get() is True:
+        #         return True
+        # return False
 
     def neighborhood_1(self, max_coverage=0, q=0, nb_removed=1):
         """
@@ -460,7 +495,7 @@ class Solution(Instance):
                 self.remove_sensor(sensor)
             return False
 
-    def almost_annealing(self, cmax=500):
+    def almost_annealing(self, cmax=500, multiproc=True):
 
         c = 0
         better = 0
@@ -476,9 +511,11 @@ class Solution(Instance):
                 print("reorganize")
                 print("i = ", c)
                 print("score_min : ", self.score)
-                self.re_organize(int(self.score / 2))
+                t0 = time.time()
+                self.re_organize(int(self.score / 2), multiproc=multiproc)
+                print("reorganize : {:.2f}".format(time.time() - t0))
 
-    def re_organize(self, nb_reorganized):
+    def re_organize(self, nb_reorganized, multiproc=True):
 
         to_change = sample(list(self.sensors.nodes)[1:], nb_reorganized)
 
@@ -493,12 +530,18 @@ class Solution(Instance):
 
             for sensor in to_test:
                 self.remove_sensor(sensor)
-
-            if not self._is_switchable(switch):
-                logging.debug(
-                    "Neighborhood 1 : Switch fail around {}".format(i_test))
-                for sensor in to_test:
-                    self.add_sensor(sensor)
+            if multiproc:
+                if not self._is_switchable_multiproc(switch):
+                    logging.debug(
+                        "Neighborhood 1 : Switch fail around {}".format(i_test))
+                    for sensor in to_test:
+                        self.add_sensor(sensor)
+            else:
+                if not self._is_switchable(switch):
+                    logging.debug(
+                        "Neighborhood 1 : Switch fail around {}".format(i_test))
+                    for sensor in to_test:
+                        self.add_sensor(sensor)
 
     # Fourth neighborhood structure
 
@@ -545,13 +588,13 @@ class Solution(Instance):
         nb_added = 0
         available_sensors = copy.deepcopy(self.sensors_sorted)
         for i in range(to_add):
-            biggest_sensor = available_sensors[0]
-            biggest_coverage = len(self.sensor_coverage[biggest_sensor[0]])
+            biggest_sensor = available_sensors[1]
+            biggest_coverage = len(list(self.neighbors.neighbors(biggest_sensor[0])))
 
-            for sensor in available_sensors[1:]:
+            for sensor in available_sensors[2:]:
                 if len(sensor[1]) > biggest_coverage:
                     biggest_sensor = sensor
-                    biggest_coverage = len(self.sensor_coverage[biggest_sensor[0]])
+                    biggest_coverage = len(list(self.neighbors.neighbors(biggest_sensor[0])))
 
             self.add_sensor_close_to_target(biggest_sensor[0])
             nb_added += 1
