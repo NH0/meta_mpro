@@ -22,7 +22,7 @@ def solve_with_almost_annealing():
     t2 = time()
     print("time to optimize locally : ", t2 - t1)
     print("first score : ", Solution1.score)
-    Solution1.almost_annealing(multiproc=True)
+    Solution1.almost_annealing(multiproc=False)
     # t3 = time()
     # print("time to optimize with first meta : ", t3 - t2)
     # Solution1.optimize_voisi()

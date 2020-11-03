@@ -495,11 +495,11 @@ class Solution(Instance):
                 self.remove_sensor(sensor)
             return False
 
-    def almost_annealing(self, cmax=500, multiproc=True):
-
+    def almost_annealing(self, cmax=500, max_time=220, multiproc=True):
+        t0 = time.time()
         c = 0
         better = 0
-        while c < cmax:
+        while c < cmax and time.time() < t0 + max_time:
             print("better : ", better)
             if self.neighborhood_3(int(self.score / 5)):
                 better = 0
@@ -511,9 +511,10 @@ class Solution(Instance):
                 print("reorganize")
                 print("i = ", c)
                 print("score_min : ", self.score)
-                t0 = time.time()
+                print("time : ", time.time() - t0)
+                t1 = time.time()
                 self.re_organize(int(self.score / 2), multiproc=multiproc)
-                print("reorganize : {:.2f}".format(time.time() - t0))
+                print("reorganize time : {:.2f}".format(time.time() - t1))
 
     def re_organize(self, nb_reorganized, multiproc=True):
 

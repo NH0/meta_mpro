@@ -20,21 +20,11 @@ def find_t0(solution0, pi=0.3, number_of_neighbors=20):
 
 def v(solution, k=0):
     if k == 0:
-        solution.neighborhood_5(to_add=int(solution.score / 5))
+        solution.neighborhood_5(to_add=int(solution.score / 6))
     elif k == 1:
-        solution.neighborhood_3(nb_added=int(solution.score / 6))
+        solution.neighborhood_5(to_add=int(solution.score / 5))
     elif k == 2:
-        solution.neighborhood_2(to_remove=int(solution.score / 5))
-    elif k == 3:
-        solution.neighborhood_1(max_coverage=0, q=0, nb_removed=1)
-    elif k == 4:
-        solution.neighborhood_1(max_coverage=0, q=1, nb_removed=1)
-    elif k == 5:
-        solution.neighborhood_1(max_coverage=0, q=2, nb_removed=1)
-    elif k == 6:
-        solution.neighborhood_1(max_coverage=0, q=0, nb_removed=2)
-    elif k == 7:
-        solution.neighborhood_1(max_coverage=0, q=1, nb_removed=2)
+        solution.neighborhood_5(to_add=int(solution.score / 4))
     else:
         raise ValueError(k)
 
@@ -70,11 +60,12 @@ def start_vns(solution, k_max=3, max_time=500, max_unimproving_iters=50, phi=0.8
             solution_prim.optimize_locally()
             scores.append(solution_prim.score)
 
-            logging.info("VNS score: {}\tCurrent score was {}\tBest score is {}\tk: {}".format(
+            logging.info("VNS score: {}\tCurrent score was {}\tBest score is {}\tk: {}\tTime {:.1f}".format(
                 scores[-1],
                 current_solution.score,
                 best_solution.score,
-                k))
+                k,
+                time.time() - start_time))
             logging.debug("Scores {}".format(scores))
 
             if scores[-1] < best_solution.score:
@@ -109,3 +100,7 @@ def start_vns(solution, k_max=3, max_time=500, max_unimproving_iters=50, phi=0.8
                 current_solution.re_organize(int(current_solution.score / 2), multiproc=False)
 
     return best_solution, scores
+
+
+if __name__ == "__main__":
+    print("Start from main.py")
