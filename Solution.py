@@ -460,7 +460,7 @@ class Solution(Instance):
                 self.remove_sensor(sensor)
             return False
 
-    def almost_annealing(self, cmax=500):
+    def almost_annealing(self, cmax=100):
 
         c = 0
         better = 0
@@ -480,7 +480,8 @@ class Solution(Instance):
 
     def re_organize(self, nb_reorganized):
 
-        to_change = sample(list(self.sensors.nodes)[1:], nb_reorganized)
+        # to_change = sample(list(self.sensors.nodes)[1:], nb_reorganized)
+        to_change = sample(range(1,self._n), nb_reorganized)
 
         for i_test in to_change:
             to_test = self.target_coverage[i_test][:]
@@ -543,15 +544,15 @@ class Solution(Instance):
         Cannot add at the same place at each iteration.
         """
         nb_added = 0
-        available_sensors = copy.deepcopy(self.sensors_sorted)
+        available_sensors = copy.deepcopy(self.sensors_sorted[1:])
         for i in range(to_add):
             biggest_sensor = available_sensors[0]
-            biggest_coverage = len(self.sensor_coverage[biggest_sensor[0]])
+            biggest_coverage = len(self.neighbors.neighbors(biggest_sensor[0]))
 
             for sensor in available_sensors[1:]:
                 if len(sensor[1]) > biggest_coverage:
                     biggest_sensor = sensor
-                    biggest_coverage = len(self.sensor_coverage[biggest_sensor[0]])
+                    biggest_coverage = len(self.neighbors.neighbors(biggest_sensor[0]))
 
             self.add_sensor_close_to_target(biggest_sensor[0])
             nb_added += 1
