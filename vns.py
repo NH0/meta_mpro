@@ -41,7 +41,7 @@ def v(solution, k=0):
     return solution
 
 
-def start_vns(solution, k_max=3, max_time=300, max_constant_iter=50, phi=0.9, steps=40):
+def start_vns(solution, k_max=3, max_time=150, max_unimproving_iters=400, phi=0.9, steps=250):
     best_solution = copy.deepcopy(solution)
     current_solution = copy.deepcopy(solution)
     t0 = find_t0(solution)
@@ -51,15 +51,18 @@ def start_vns(solution, k_max=3, max_time=300, max_constant_iter=50, phi=0.9, st
     scores = []
     start_time = time.time()
     iteration = 0
-    constant_iterations = 0
-    while (time.time() - start_time) < max_time and constant_iterations < max_constant_iter:
+    unimproving_iterations = 0
+    while (time.time() - start_time) < max_time and unimproving_iterations < max_unimproving_iters:
         k = 0
         print("Current VNS score : {}".format(best_solution.score))
-        logging.info("Starting new VNS loop {}\tTemperature is {:.2e}\t"
-                     "Execution time is {:.2f}".format(
+        logging.info("Starting new VNS loop {}\t"
+                     "Temperature is {:.2e}\t"
+                     "Execution time is {:.2f}\t"
+                     "Not increased best for {} interations".format(
                          iteration,
                          temperature,
-                         time.time() - start_time))
+                         time.time() - start_time,
+                         unimproving_iterations))
         while k < k_max:
             solution_prim = v(copy.deepcopy(current_solution), k)
             if not solution_prim.is_admissible():
@@ -76,26 +79,30 @@ def start_vns(solution, k_max=3, max_time=300, max_constant_iter=50, phi=0.9, st
 
             if scores[-1] < best_solution.score:
                 best_solution = copy.deepcopy(solution_prim)
+                unimproving_iterations = 0
+            else:
+                unimproving_iterations += 1
 
             # Simulated annealing
             delta_f = scores[-1] - current_solution.score
             if delta_f < 0:
                 current_solution = solution_prim
                 k = 0
-                constant_iterations = 0
             else:
-                proba = math.exp(- delta_f / temperature)
-                logging.debug("Proba {}".format(proba))
-                if random.random() < proba and delta_f > 0:
-                    current_solution = solution_prim
-                    k = 0
+                if temperature > 1e-4:
+                    proba = math.exp(- delta_f / temperature)
+                    logging.debug("Proba {}".format(proba))
+                    if random.random() < proba and delta_f > 0:
+                        current_solution = solution_prim
+                        k = 0
+                    else:
+                        k += 1
                 else:
                     k += 1
-                constant_iterations += 1
 
-        iteration += 1
-        if iteration % steps == 0:
-            logging.info("Reducing temperature {}".format(temperature))
-            temperature = phi * temperature
+            iteration += 1
+            if iteration % steps == 0:
+                logging.info("Reducing temperature {}".format(temperature))
+                temperature = phi * temperature
 
     return best_solution, scores
