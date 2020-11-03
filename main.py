@@ -49,7 +49,7 @@ def solve_with_vns():
                                                  r_capt=Solution2._rcapt,
                                                  r_com=Solution2._rcom,
                                                  best_value=Solution2.score,
-                                                 time_exec=t5 - t1,
+                                                 time_exec=t4 - t1,
                                                  sensors=sorted(list(Solution2.sensors.nodes))))
                 # Solution1.plot_sensors()
                 # Solution2.plot_sensors()
