@@ -14,7 +14,7 @@ def solve_with_vns():
     with open("logs.txt", "a") as f:
         f.write("-" * 70 + "\n")
     for name in NAMES[5:]:
-        for i in range(3):
+        for i in range(1, 3):
             for j in range(4):
                 print("---------------\n"
                       "Starting {name} with k={k} "
@@ -49,7 +49,7 @@ def solve_with_vns():
                                                  r_capt=Solution2._rcapt,
                                                  r_com=Solution2._rcom,
                                                  best_value=Solution2.score,
-                                                 time_exec=t5 - t1,
+                                                 time_exec=t4 - t1,
                                                  sensors=sorted(list(Solution2.sensors.nodes))))
                 # Solution1.plot_sensors()
                 # Solution2.plot_sensors()

@@ -219,7 +219,7 @@ class Solution(Instance):
 
         return L_removed
 
-    # Fonctions relatives au voisinage V_2
+    # Fonctions relatives au voisinage V_1
     def _find_max_coverage(self, max_coverage, q):
         """ returns the targets with the largest amount of sensors related"""
         i_max = []
@@ -299,7 +299,6 @@ class Solution(Instance):
             return False
 
     # Fonctions relatives au voisinage V_2
-
     def add_sensor_close_to_target(self, target_index):
         if target_index in self.sensors.nodes or target_index == 0:
             index_neighbors = np.array(
@@ -428,7 +427,7 @@ class Solution(Instance):
         return nb_added
 
     # Voisinage V_2
-    def neighborhood_2(self, to_remove=4):
+    def neighborhood_v_2(self, to_remove=4):
         """
         Remove to_remove sensors randomly selected.
         Then fix the coverage and connection for admissibility
