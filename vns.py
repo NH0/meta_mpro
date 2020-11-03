@@ -5,7 +5,7 @@ import math
 import copy
 
 
-def find_t0(solution0, pi=0.3, number_of_neighbors=20):
+def find_t0(solution0, pi=0.5, number_of_neighbors=20):
     """
     Fonction pour trouver T0 la température initiale du recuit simulé
     à partir d'une proportion de solutions à accepter pi.
@@ -15,7 +15,7 @@ def find_t0(solution0, pi=0.3, number_of_neighbors=20):
     medium_score = 0
     for i in range(number_of_neighbors):
         neighbor = copy.deepcopy(solution0)
-        neighbor.neighborhood_3(to_add=int(neighbor.sensors.number_of_nodes() / 12))
+        neighbor.neighborhood_v_1(nb_added=int(neighbor.sensors.number_of_nodes() / 12))
         medium_score += int(neighbor.score)
     medium_score = medium_score / number_of_neighbors
     delta_f = medium_score - score0
@@ -28,11 +28,11 @@ def v(solution, k=0):
     Renvoie un élément x du voisinage V(k).
     """
     if k == 0:
-        solution.neighborhood_3(to_add=int(solution.score / 6))
+        solution.neighborhood_v_1(nb_added=int(solution.score / 6))
     elif k == 1:
-        solution.neighborhood_3(to_add=int(solution.score / 5))
+        solution.neighborhood_v_1(nb_added=int(solution.score / 5))
     elif k == 2:
-        solution.neighborhood_3(to_add=int(solution.score / 4))
+        solution.neighborhood_v_1(nb_added=int(solution.score / 4))
     else:
         raise ValueError(k)
 
@@ -65,7 +65,7 @@ def start_vns(solution, k_max=3, max_time=500, max_unimproving_iters=50, phi=0.8
         print("Current VNS score : {}".format(best_solution.score))
         logging.info("Starting new VNS loop {}\t"
                      "Temperature is {:.2e}\t"
-                     "Execution time is {:.2f}\t"
+                     "Execution time is {:.2f}s\t"
                      "Not increased best for {} interations".format(
                          iteration,
                          temperature,
@@ -80,7 +80,7 @@ def start_vns(solution, k_max=3, max_time=500, max_unimproving_iters=50, phi=0.8
             scores.append(solution_prim.score)
 
             logging.info("VNS score: {}\tCurrent score was {}"
-                         "\tBest score is {}\tk: {}\tTime {:.1f}".format(
+                         "\tBest score is {}\tk: {}\tTime {:.1f}s".format(
                              scores[-1],
                              current_solution.score,
                              best_solution.score,
@@ -122,7 +122,7 @@ def start_vns(solution, k_max=3, max_time=500, max_unimproving_iters=50, phi=0.8
                 # On en profite pour réassigner la meilleure solution à la solution courante
                 current_solution = copy.deepcopy(best_solution)
                 # et faire une exploration avec re_organize (présenté dans le rapport)
-                current_solution.re_organize(int(current_solution.score / 2), multiproc=False)
+                current_solution.re_organize(int(current_solution.score / 2))
 
     return best_solution, scores
 
