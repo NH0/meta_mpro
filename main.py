@@ -22,14 +22,15 @@ def solve_with_almost_annealing():
     t2 = time()
     print("time to optimize locally : ", t2 - t1)
     print("first score : ", Solution1.score)
-    Solution1.almost_annealing(multiproc=True)
-    # t3 = time()
-    # print("time to optimize with first meta : ", t3 - t2)
-    # Solution1.optimize_voisi()
-    # t4 = time()
-    # print(t4 - t3)
-    # print(Solution1.score)
-    # Solution1.plot_sensors()
+    Solution1.almost_annealing(multiproc=False)
+    t3 = time()
+    print("time to optimize with first meta : ", t3 - t2)
+    Solution1.optimize_voisi()
+    t4 = time()
+    print(t4 - t3)
+    Solution2, scores = vns.start_vns(Solution1)
+    print(Solution1.score)
+    Solution1.plot_sensors()
 
 
 def mean_almost_annealing():
