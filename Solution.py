@@ -38,7 +38,7 @@ class Solution(Instance):
 
         return copy.deepcopy(self)
 
-    # Add or remove sensors
+    # Trouver les cibles proches d'une cible i
     def _reduce_target(self, i):
 
         inf_x = bisect(self._data_x[:, 1], list(
@@ -69,6 +69,7 @@ class Solution(Instance):
 
         return x, inf_x, sup_x
 
+    # Ajouter ou supprimer des capteurs
     def add_sensor(self, i):
 
         if i in self.sensors.nodes:
@@ -126,8 +127,7 @@ class Solution(Instance):
 
         return self._is_connected() and self._is_covered()[0]
 
-    # Optimize locally the solution
-
+    # Fonctions relatives à l'optimisation locale
     def add_all(self):
 
         for i in range(1, self._n):
@@ -191,6 +191,7 @@ class Solution(Instance):
                 return True, removed
         return False, 0
 
+    # Optimisation locale
     def optimize_locally(self, r_max=2):
 
         admissible = True
@@ -202,6 +203,7 @@ class Solution(Instance):
 
         return L_removed
 
+    # Fonctions relatives au voisinage V_2
     def _find_max_coverage(self, max_coverage, q):
         i_max = []
         if max_coverage == 0:
@@ -234,6 +236,27 @@ class Solution(Instance):
                 return True
         return False
 
+    def re_organize(self, nb_reorganized):
+
+        to_change = sample(range(1, self._n), nb_reorganized)
+
+        for i_test in to_change:
+            to_test = self.target_coverage[i_test][:]
+            logging.debug(
+                "Removing sensors {}\tTarget node is {}".format(to_test, i_test))
+
+            switch = list(combinations(self.neighbors.neighbors(
+                i_test), len(self.target_coverage[i_test])))
+            shuffle(switch)
+
+            for sensor in to_test:
+                self.remove_sensor(sensor)
+            if not self._is_switchable(switch):
+                logging.debug(
+                    "Neighborhood 1 : Switch fail around {}".format(i_test))
+                for sensor in to_test:
+                    self.add_sensor(sensor)
+
     # Voisinage V_1
     def neighborhood_v_1(self, nb_added):
 
@@ -256,28 +279,8 @@ class Solution(Instance):
                 self.remove_sensor(sensor)
             return False
 
-    def re_organize(self, nb_reorganized):
-
-        to_change = sample(range(1, self._n), nb_reorganized)
-
-        for i_test in to_change:
-            to_test = self.target_coverage[i_test][:]
-            logging.debug(
-                "Removing sensors {}\tTarget node is {}".format(to_test, i_test))
-
-            switch = list(combinations(self.neighbors.neighbors(
-                i_test), len(self.target_coverage[i_test])))
-            shuffle(switch)
-
-            for sensor in to_test:
-                self.remove_sensor(sensor)
-            if not self._is_switchable(switch):
-                logging.debug(
-                    "Neighborhood 1 : Switch fail around {}".format(i_test))
-                for sensor in to_test:
-                    self.add_sensor(sensor)
-
     # Fonctions relatives au voisinage V_2
+
     def add_sensor_close_to_target(self, target_index):
         if target_index in self.sensors.nodes or target_index == 0:
             index_neighbors = np.array(
