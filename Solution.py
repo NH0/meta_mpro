@@ -278,7 +278,9 @@ class Solution(Instance):
 
     # Voisinage V_1
     def neighborhood_v_1(self, nb_added):
-        """Function trying to improve the solution by adding """
+        """Function trying to improve the solution by adding a fixed number
+        of sensors and then use the function opitimize_locally.
+        The solution is only kept if the score is improved"""
         score = self.score
         addable = [i for i in range(1, self._n) if i not in self.sensors.nodes]
         to_add = sample(addable, nb_added)
@@ -449,7 +451,8 @@ class Solution(Instance):
 
     # Display solution
     def plot_sensors(self):
-
+        """Display the targets in blue and the sensors in red
+        The green circle is the r_capt radius ball"""
         _, ax = plt.subplots()
         ax.set_aspect('equal', adjustable='box')
 

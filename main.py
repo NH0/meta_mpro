@@ -13,7 +13,7 @@ RS = [(1, 1), (1, 2), (2, 2), (2, 3)]
 def solve_with_vns():
     with open("logs.txt", "a") as f:
         f.write("-" * 70 + "\n")
-    for name in NAMES[5:]:
+    for name in NAMES[4:5]:
         for i in range(1, 3):
             for j in range(4):
                 print("---------------\n"
