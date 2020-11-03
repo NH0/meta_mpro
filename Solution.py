@@ -2,6 +2,7 @@ import networkx as nx
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.patches as ptc
+import copy
 from collections import defaultdict
 from bisect import bisect
 from random import sample, shuffle, random
@@ -33,13 +34,7 @@ class Solution(Instance):
 
     def copy(self):
 
-        Solution_cop = Solution(self._name)
-        Solution_cop.sensors = self.sensors.copy()
-        Solution_cop.sensors_sorted = self.sensors_sorted[:]
-        Solution_cop.target_coverage = self.target_coverage.copy()
-        Solution_cop.sensor_coverage = self.sensor_coverage.copy()
-
-        return Solution_cop
+        return copy.deepcopy(self)
 
     # Add or remove sensors
     def _reduce_target(self, i):
@@ -95,6 +90,13 @@ class Solution(Instance):
 
         neighbors = self._find_neighbors(i, distance=self._rcapt)
         for x_j in neighbors:
+            if i in self.target_coverage[x_j]:
+                logging.warning(" {} already in target_coverage of {} ...\n\t{}\n{}\n{}".format(
+                    i, x_j,
+                    inspect.getframeinfo(inspect.currentframe().f_back),
+                    inspect.getframeinfo(inspect.currentframe().f_back.f_back),
+                    inspect.getframeinfo(inspect.currentframe().f_back.f_back.f_back)))
+                continue
             self.target_coverage[x_j].append(i)
             self.sensor_coverage[i].append(x_j)
 
@@ -110,7 +112,8 @@ class Solution(Instance):
         for j in range(max(inf_x - 1, 1), min(sup_x + 1, self._n)):
             x_j = self._data_x[j][0]
             if i in self.target_coverage[x_j]:
-                self.target_coverage[x_j].remove(i)
+                self.target_coverage[x_j] = list(
+                    filter(lambda x: x != i, self.target_coverage[x_j]))
 
     # Check admissibility
     def _is_connected(self):
@@ -223,7 +226,7 @@ class Solution(Instance):
         return i_max, max_coverage
 
     def _is_switchable(self, switch):
-        
+
         for i in range(len(switch)):
             try_switch = switch[i]
             for sensor in try_switch:
@@ -232,7 +235,7 @@ class Solution(Instance):
                 self.add_sensor(sensor)
             if not self.is_admissible():
                 for sensor in try_switch:
-                    if sensor==0:
+                    if sensor == 0:
                         print("problem")
                     self.remove_sensor(sensor)
             else:
@@ -273,7 +276,7 @@ class Solution(Instance):
                 logging.debug("Neighborhood 1 : Switch sucess around {}"
                               "\tNew score {}".format(
                                   i_test, self.score))
-                logging.info("Neighborhood 1 : Removed 1 sensor")
+                logging.debug("Neighborhood 1 : Removed 1 sensor")
                 return 1, max_coverage
 
         return 0, max_coverage
@@ -289,8 +292,11 @@ class Solution(Instance):
                         self._data[target_index])),
                 dtype=object)
             i = 0
-            while index_neighbors[i][0] in self.sensors.nodes:
+            while i < len(index_neighbors) and (index_neighbors[i][0] in self.sensors.nodes):
                 i += 1
+            if i == len(index_neighbors):
+                logging.warning("Cannot add sensor close to {}", target_index)
+                return -1
             self.add_sensor(index_neighbors[i][0])
             logging.debug("close to target : added sensor (neighbor of {}) {}".format(
                 target_index, index_neighbors[i][0]))
@@ -324,6 +330,8 @@ class Solution(Instance):
         nb_added = 0
         is_covered, index_not_covered = self._is_covered()
         while not(is_covered):
+            if index_not_covered == 0:
+                raise ValueError(index_not_covered)
             self.add_sensor_close_to_target(target_index=index_not_covered)
             nb_added += 1
             is_covered, index_not_covered = self._is_covered()
@@ -338,10 +346,18 @@ class Solution(Instance):
                 component).nodes) for component in nx.connected_components(self.sensors)]
             logging.debug("Neighborhood 2 : {} connected components".format(
                 len(list(connected_components))))
-            while len(self.target_coverage[0]) == 0:
-                self.add_sensor_close_to_target(0)
-            component_with_00 = list(nx.node_connected_component(
-                self.sensors, self.target_coverage[0][0]))
+            neighbors00 = self._find_neighbors(0, distance=self._rcom)
+            found_component = False
+            for neighbor in neighbors00:
+                if neighbor in self.sensors.nodes:
+                    component_with_00 = list(nx.node_connected_component(
+                        self.sensors, neighbor))
+                    found_component = True
+                    break
+            if not found_component:
+                self.add_sensor(neighbors00[0])
+                component_with_00 = list(nx.node_connected_component(
+                    self.sensors, neighbors00[0]))
 
             # Choose the closest component X to the component Y containing (0,0)
             random_element_connected_to_00 = random_generator.choice(
@@ -409,9 +425,9 @@ class Solution(Instance):
             raise RuntimeError
 
         if to_remove - nb_added > 0:
-            logging.info("Neighborhood 2 : Removed {} sensors".format(to_remove - nb_added))
+            logging.debug("Neighborhood 2 : Removed {} sensors".format(to_remove - nb_added))
         else:
-            logging.info("Neighborhood 2 : Added {} sensors".format(nb_added - to_remove))
+            logging.debug("Neighborhood 2 : Added {} sensors".format(nb_added - to_remove))
 
         return to_remove - nb_added
 
@@ -419,14 +435,14 @@ class Solution(Instance):
     def neighborhood_3(self, nb_added=50):
 
         score = self.score
-        addable = [i for i in range(1,self._n) if i not in self.sensors.nodes]
+        addable = [i for i in range(1, self._n) if i not in self.sensors.nodes]
         to_add = sample(addable, nb_added)
         for sensor in to_add:
             self.add_sensor(sensor)
         removed = self.optimize_locally()
         if self.score < score:
             score = self.score
-            logging.debug("Neighborhood 3 : score ", score)
+            logging.debug("Neighborhood 3 : {}", score)
             # return 0,0
             return True
         else:
@@ -466,7 +482,7 @@ class Solution(Instance):
         #                 for sensor in to_add:
         #                     self.remove_sensor(sensor)
         #     Temp = phi * Temp
-        #             
+        #
         #     if not c%10:
         #         print("i = ", c)
         #         print("score_min : ", score_min)
@@ -476,7 +492,7 @@ class Solution(Instance):
         while T > 0 and c < cmax:
             print("better : ", better)
             if self.neighborhood_3(T):
-                 better = 0
+                better = 0
             else:
                 better += 1
             c += 1
@@ -485,9 +501,9 @@ class Solution(Instance):
                 print("i = ", c)
                 print("score_min : ", self.score)
                 self.re_organize()
-            
+
     def re_organize(self):
-        
+
         to_change = sample(list(self.sensors.nodes)[1:], 40)
         if 0 in to_change:
             print("problem 0")
@@ -496,7 +512,8 @@ class Solution(Instance):
             logging.debug(
                 "Removing sensors {}\tTarget node is {}".format(to_test, i_test))
             if i_test in self.sensors.nodes:
-                switch = list(combinations(self.sensor_coverage[i_test], len(self.target_coverage[i_test])))
+                switch = list(combinations(
+                    self.sensor_coverage[i_test], len(self.target_coverage[i_test])))
                 if 0 in switch:
                     print("problem 1")
                 shuffle(switch)
@@ -519,10 +536,9 @@ class Solution(Instance):
                 for sensor in to_test:
                     self.add_sensor(sensor)
                 print("problem")
-   
-           
 
     # Fourth neighborhood structure
+
     def neighborhood_4(self, to_add=20):
         """
         Add at most to_add sensors.
@@ -553,7 +569,7 @@ class Solution(Instance):
             self.add_sensor(best_target)
             nb_added += 1
 
-        logging.info("Neighborhood 4 : Added {} sensors".format(nb_added))
+        logging.debug("Neighborhood 4 : Added {} sensors".format(nb_added))
         return nb_added
 
     # Fifth neighborhood structure
@@ -564,15 +580,15 @@ class Solution(Instance):
         Cannot add at the same place at each iteration.
         """
         nb_added = 0
-        available_sensors = self.sensors_sorted[:]
+        available_sensors = copy.deepcopy(self.sensors_sorted)
         for i in range(to_add):
             biggest_sensor = available_sensors[0]
-            biggest_coverage = len(biggest_sensor[1])
+            biggest_coverage = len(self.sensor_coverage[biggest_sensor[0]])
 
             for sensor in available_sensors[1:]:
                 if len(sensor[1]) > biggest_coverage:
                     biggest_sensor = sensor
-                    biggest_coverage = len(sensor[1])
+                    biggest_coverage = len(self.sensor_coverage[biggest_sensor[0]])
 
             self.add_sensor_close_to_target(biggest_sensor[0])
             nb_added += 1
@@ -581,7 +597,10 @@ class Solution(Instance):
             if len(available_sensors) == 0:
                 break
 
-        logging.info("Neighborhood 5 : Added {} sensors".format(nb_added))
+        logging.debug("Neighborhood 5 : Added {} sensors".format(nb_added))
+        if not self.is_admissible():
+            raise RuntimeError
+
         return nb_added
 
     # Another local optimization using neighborhood1 structure

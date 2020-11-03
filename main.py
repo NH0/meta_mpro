@@ -15,7 +15,7 @@ for name in NAMES[1:]:
     for i in range(3):
         for j in range(4):
             print("---------------\n"
-                  "Starting {name} with k={k}"
+                  "Starting {name} with k={k} "
                   "(R_capt, R_com)=({r_capt},{r_com})".format(
                       name=name,
                       k=i + 1,
@@ -32,7 +32,7 @@ for name in NAMES[1:]:
             print("time to optimize locally : ", t2 - t1)
             print("first score : ", Solution1.score)
             t3 = time()
-            Solution1.almost_annealing()
+            # Solution1.almost_annealing()
             print("time to optimize with first meta : ", t3 - t2)
             # quartering(Solution1)
             # Solution1.optimize_voisi()
@@ -56,7 +56,7 @@ for name in NAMES[1:]:
                                              time_exec=t5 - t1,
                                              sensors=sorted(list(Solution2.sensors.nodes))))
             # Solution1.plot_sensors()
-            # Solution2.plot_sensors()
+            Solution2.plot_sensors()
             # Solution1.optimize_locally()
 # Solution1 = Solution.Solution(NAME)
 # t = time()
