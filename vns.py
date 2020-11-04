@@ -5,19 +5,23 @@ import math
 import copy
 
 
-def find_t0(solution0, pi=0.5, number_of_neighbors=20):
+def find_t0(solution0, pi=0.5, number_of_neighbors=100):
     """
     Fonction pour trouver T0 la température initiale du recuit simulé
-    à partir d'une proportion de solutions à accepter pi.
+    à partir d'une proportion de solutions à accepter 1-pi.
     Le nombre de voisins représente la taille de l'échantillon utilisé pour déterminer T0.
     """
     score0 = solution0.score
     medium_score = 0
+    nb_neighbors = 0
     for i in range(number_of_neighbors):
         neighbor = copy.deepcopy(solution0)
-        neighbor.neighborhood_v_1(nb_added=int(neighbor.sensors.number_of_nodes() / 12))
-        medium_score += int(neighbor.score)
-    medium_score = medium_score / number_of_neighbors
+        neighbor.neighborhood_v_1(nb_added=int(
+            neighbor.sensors.number_of_nodes() / ((i % 3) + 4)))
+        if neighbor.score >= score0:
+            medium_score += int(neighbor.score)
+            nb_neighbors += 1
+    medium_score = medium_score / nb_neighbors
     delta_f = medium_score - score0
 
     return - delta_f / math.log(pi)
@@ -50,6 +54,7 @@ def start_vns(solution, k_max=3, max_time=500, max_unimproving_iters=50, phi=0.8
     phi est le multiplicateur de la température pour le recuit.
     step est le nombre de pas ! sans amélioration ! avant de diminuer la température du recuit.
     """
+    solution.neighborhood_v_1(nb_added=int(solution.score / 6))
     best_solution = copy.deepcopy(solution)
     current_solution = copy.deepcopy(solution)
     t0 = find_t0(solution)

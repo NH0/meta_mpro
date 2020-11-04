@@ -11,6 +11,7 @@ Instances
 *.zip
 *.png
 *.tgn
+*.tex
 
 # Ignore unused code
 main.cpp

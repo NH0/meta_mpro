@@ -2,14 +2,12 @@ import numpy as np
 
 import utils as utils
 
-from configuration import PATH
-
 
 class Instance:
     radiuses = [(1, 1), (1, 2), (2, 2), (2, 3)]
     ks = [1, 2, 3]
 
-    def __init__(self, name, ind_radius=0, ind_k=0, path=PATH, readinstance=True):
+    def __init__(self, name, path, ind_radius=0, ind_k=0, readinstance=True):
 
         self._rcapt = Instance.radiuses[ind_radius][0]
         self._rcom = Instance.radiuses[ind_radius][1]
@@ -21,7 +19,7 @@ class Instance:
         if readinstance:
             self.read_instance(name, path)
 
-    def read_instance(self, name, path=PATH):
+    def read_instance(self, name, path):
 
         with open(path + name, "r") as f:
             for i, line in enumerate(f.readlines()):
@@ -37,7 +35,7 @@ class Instance:
             self._n = len(self._data)
 
     @staticmethod
-    def generate_instance_from_existing(name, path=PATH, size=3.0):
+    def generate_instance_from_existing(name, path, size=3.0):
         instance = Instance(name, path=path, readinstance=False)
 
         with open(path + name, "r") as f:
@@ -58,13 +56,14 @@ class Instance:
 
         return instance
 
-    def save_instance_to_file(self, name, path=PATH):
+    def save_instance_to_file(self, name, path):
 
         with open(path + name, "x") as f:
             pass
         with open(path + name, "w") as f:
             for target in self._data.items():
-                f.write("{}  {} {}\n".format(target[0], target[1][0], target[1][1]))
+                f.write("{}  {} {}\n".format(
+                    target[0], target[1][0], target[1][1]))
 
     def _distance_ind(self, i, j):
 

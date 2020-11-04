@@ -1,13 +1,11 @@
-import concurrent.futures
 import networkx as nx
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.patches as ptc
 import copy
-import time
 from collections import defaultdict
 from bisect import bisect
-from random import sample, shuffle, random
+from random import sample, shuffle
 from itertools import combinations
 
 import logging
@@ -16,13 +14,12 @@ import inspect
 import utils
 
 from Instance import Instance
-from configuration import PATH
 
 
 class Solution(Instance):
 
-    def __init__(self, name, ind_radius=0, ind_k=0, path=PATH):
-        Instance.__init__(self, name, ind_radius, ind_k, path)
+    def __init__(self, name, path, ind_radius=0, ind_k=0):
+        Instance.__init__(self, name, path, ind_radius, ind_k)
         self.sensors = nx.Graph()
         self.sensors.add_node(0)
         self.neighbors = nx.Graph()
@@ -115,7 +112,8 @@ class Solution(Instance):
 
         neighbors = list(self.neighbors.neighbors(i))
         for x_j in neighbors:
-            self.target_coverage[x_j] = list(filter(lambda x: x != i, self.target_coverage[x_j]))
+            self.target_coverage[x_j] = list(
+                filter(lambda x: x != i, self.target_coverage[x_j]))
 
         return 1
 
@@ -468,9 +466,11 @@ class Solution(Instance):
             raise RuntimeError
 
         if to_remove - nb_added > 0:
-            logging.debug("Neighborhood 2 : Removed {} sensors".format(to_remove - nb_added))
+            logging.debug("Neighborhood 2 : Removed {} sensors".format(
+                to_remove - nb_added))
         else:
-            logging.debug("Neighborhood 2 : Added {} sensors".format(nb_added - to_remove))
+            logging.debug("Neighborhood 2 : Added {} sensors".format(
+                nb_added - to_remove))
 
         return to_remove - nb_added
 
