@@ -105,6 +105,8 @@ def solve_with_vns():
 
 
 if __name__ == "__main__":
+    print("calling c++ function with arg {}".format(5.5))
+    Solution.Solution.call_cpp()
     # solve_with_vns()
-    solve_with_almost_annealing()
+    # solve_with_almost_annealing()
     # mean_almost_annealing()

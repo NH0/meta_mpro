@@ -1,3 +1,12 @@
+from configuration import PATH
+from Instance import Instance
+import utils
+import inspect
+import logging
+from itertools import combinations
+from random import sample, shuffle, random
+from bisect import bisect
+from collections import defaultdict
 import concurrent.futures
 import networkx as nx
 import numpy as np
@@ -5,18 +14,8 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as ptc
 import copy
 import time
-from collections import defaultdict
-from bisect import bisect
-from random import sample, shuffle, random
-from itertools import combinations
-
-import logging
-import inspect
-
-import utils
-
-from Instance import Instance
-from configuration import PATH
+import ctypes
+lib = ctypes.cdll.LoadLibrary('./libmain.so.1')
 
 
 class Solution(Instance):
@@ -33,6 +32,10 @@ class Solution(Instance):
     def score(self):
 
         return len(self.sensors.nodes) - 1
+
+    @staticmethod
+    def call_cpp():
+        lib.print_c(ctypes.c_double(5.5))
 
     def copy(self):
 
@@ -519,7 +522,7 @@ class Solution(Instance):
     def re_organize(self, nb_reorganized, multiproc=True):
 
         # to_change = sample(list(self.sensors.nodes)[1:], nb_reorganized)
-        to_change = sample(range(1,self._n), nb_reorganized)
+        to_change = sample(range(1, self._n), nb_reorganized)
 
         for i_test in to_change:
             to_test = self.target_coverage[i_test][:]
